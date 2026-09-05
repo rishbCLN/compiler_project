@@ -1,0 +1,18 @@
+// Sample 4: Dead Code Elimination (DCE) & Dead Block Removal
+// Identifies unused variables, unused expressions, and pruned conditional branches.
+
+int active = 100;
+int dead_var1 = 50 * 20;
+int dead_var2 = dead_var1 + 30;
+
+if (1 == 1) {
+    active = active + 10;
+} else {
+    // Completely unreachable branch
+    int ghost_var = 999;
+    print(ghost_var);
+}
+
+int unused_calc = active * 4 + 7;
+
+print(active);

@@ -1,0 +1,21 @@
+// Sample 5: Iterative Fibonacci Sequence Generation
+// Demonstrates loop accumulation, variable updating, and comprehensive IR compression.
+
+int n = 8;
+int t1 = 0;
+int t2 = 1;
+int next_term = 0;
+int count = 2;
+
+print(t1, t2);
+
+while (count < n) {
+    next_term = t1 + t2;
+    t1 = t2;
+    t2 = next_term;
+    count = count + 1;
+    print(next_term);
+}
+
+int final_val = t2;
+print(final_val);

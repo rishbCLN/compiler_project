@@ -1,0 +1,20 @@
+// Sample 2: Control Flow Graph Branches & SSA Phi-Node Resolution
+// Demonstrates loops, conditionals, dominator tree depth, and phi function insertion.
+
+int x = 0;
+int y = 10;
+int sum = 0;
+
+if (x < y) {
+    x = x + 5;
+} else {
+    x = x + 2;
+}
+
+int i = 0;
+while (i < 5) {
+    sum = sum + x;
+    i = i + 1;
+}
+
+print(sum, x);

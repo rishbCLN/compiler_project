@@ -1,0 +1,16 @@
+// Sample 1: Arithmetic Optimization, Constant Folding & Literal Deduplication
+// Tests compile-time evaluation, algebraic identities, and constant pool interning.
+
+int a = 10 + 20 * 3;
+int b = a + 0;
+int c = b * 1;
+int d = c * 0;
+
+float pi = 3.14159;
+float radius = 5.0;
+float area = 3.14159 * radius * radius;
+
+string msg1 = "Optimization Active";
+string msg2 = "Optimization Active";
+
+print(a, b, c, d, area, msg1);

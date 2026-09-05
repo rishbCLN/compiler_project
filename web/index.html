@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IR Compression Studio | SSA, CFG, Symbol Table & Constant Optimization</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Chart.js for interactive analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Cytoscape.js for interactive CFG graph layout -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Navigation Bar -->
+        <header class="navbar">
+            <div class="nav-brand">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                        <polyline points="2 17 12 22 22 17"></polyline>
+                        <polyline points="2 12 12 17 22 12"></polyline>
+                    </svg>
+                </div>
+                <div class="brand-info">
+                    <h1>IR Compression Studio</h1>
+                    <span class="brand-subtitle">SSA • CFG • Symbol Table Minification • Constant Deduplication</span>
+                </div>
+            </div>
+
+            <div class="nav-controls">
+                <div class="sample-selector-wrapper">
+                    <label for="sample-select" class="sr-only">Select Benchmark</label>
+                    <select id="sample-select" class="dropdown-select">
+                        <option value="">Load Academic Benchmark...</option>
+                    </select>
+                </div>
+
+                <button id="btn-compile" class="btn btn-primary" title="Compile & Compress (Ctrl+Enter)">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    <span>Run Pipeline</span>
+                    <kbd>Ctrl+Enter</kbd>
+                </button>
+
+                <button id="btn-export" class="btn btn-secondary" title="Export Compressed Binary IR (.cir)">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>Export Binary</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace Area -->
+        <main class="workspace">
+            <!-- Left Panel: Source Code Editor -->
+            <section class="panel editor-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                        <span>C-Lite Source Code</span>
+                    </div>
+                    <div class="editor-actions">
+                        <button id="btn-clear" class="btn-icon" title="Clear Editor">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="editor-wrapper">
+                    <div class="line-numbers" id="line-numbers">1</div>
+                    <textarea id="source-code" spellcheck="false" placeholder="// Write C-Lite code here or select a benchmark..."></textarea>
+                </div>
+
+                <div class="panel-footer">
+                    <span id="cursor-pos">Ln 1, Col 1</span>
+                    <span class="badge" id="compiler-status">Ready</span>
+                </div>
+            </section>
+
+            <!-- Right Panel: Multi-Tab Compiler & Compression Inspector -->
+            <section class="panel inspector-panel">
+                <!-- Navigation Tabs -->
+                <nav class="tabs-nav">
+                    <button class="tab-btn active" data-tab="overview-tab">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+                        Metrics & Overview
+                    </button>
+                    <button class="tab-btn" data-tab="cfg-tab">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="12" r="3"></circle><line x1="8.5" y1="7.5" x2="15.5" y2="10.5"></line><line x1="8.5" y1="16.5" x2="15.5" y2="13.5"></line></svg>
+                        CFG Visualizer
+                    </button>
+                    <button class="tab-btn" data-tab="ssa-tab">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                        SSA & Dominance
+                    </button>
+                    <button class="tab-btn" data-tab="symbols-tab">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                        Symbols & Constants
+                    </button>
+                    <button class="tab-btn" data-tab="optimization-tab">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        Optimization Passes
+                    </button>
+                    <button class="tab-btn" data-tab="ast-tab">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+                        AST & Tokens
+                    </button>
+                </nav>
+
+                <!-- Tab Content Containers -->
+                <div class="tab-content-area">
+
+                    <!-- Tab 1: Overview & Metrics Dashboard -->
+                    <div id="overview-tab" class="tab-pane active">
+                        <!-- Stat Highlights -->
+                        <div class="stats-grid">
+                            <div class="stat-card highlight">
+                                <div class="stat-label">Final Byte Compression</div>
+                                <div class="stat-value text-accent" id="stat-final-ratio">0.0%</div>
+                                <div class="stat-sub" id="stat-bytes-detail">Raw: 0 B → Comp: 0 B</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Instruction Reduction</div>
+                                <div class="stat-value text-emerald" id="stat-instr-ratio">0.0%</div>
+                                <div class="stat-sub" id="stat-instr-detail">0 → 0 Instructions</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">CFG Complexity</div>
+                                <div class="stat-value text-amber" id="stat-cfg-complexity">0</div>
+                                <div class="stat-sub" id="stat-cfg-detail">0 Blocks, 0 Edges</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Symbol Table Savings</div>
+                                <div class="stat-value text-purple" id="stat-sym-ratio">0.0%</div>
+                                <div class="stat-sub" id="stat-sym-detail">0 Symbols Minified</div>
+                            </div>
+                        </div>
+
+                        <!-- Chart & Pipeline Stages -->
+                        <div class="dashboard-grid">
+                            <div class="card chart-card">
+                                <div class="card-header">
+                                    <h3>IR Size Reduction Across Pipeline Stages</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="compression-chart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card stages-card">
+                                <div class="card-header">
+                                    <h3>Multi-Tier Compression Pipeline</h3>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="pipeline-list">
+                                        <li class="pipeline-item">
+                                            <div class="stage-info">
+                                                <span class="stage-tag">Tier 1</span>
+                                                <strong>Structural SSA & Dead Code Removal</strong>
+                                            </div>
+                                            <span class="stage-metric" id="tier1-metric">-0%</span>
+                                        </li>
+                                        <li class="pipeline-item">
+                                            <div class="stage-info">
+                                                <span class="stage-tag">Tier 2</span>
+                                                <strong>Constant Folding & Literal Deduplication</strong>
+                                            </div>
+                                            <span class="stage-metric" id="tier2-metric">-0%</span>
+                                        </li>
+                                        <li class="pipeline-item">
+                                            <div class="stage-info">
+                                                <span class="stage-tag">Tier 3</span>
+                                                <strong>Binary Bytecode & LEB128 Encoding</strong>
+                                            </div>
+                                            <span class="stage-metric" id="tier3-metric">-0%</span>
+                                        </li>
+                                        <li class="pipeline-item">
+                                            <div class="stage-info">
+                                                <span class="stage-tag">Tier 4</span>
+                                                <strong>Canonical Huffman Entropy Coding</strong>
+                                            </div>
+                                            <span class="stage-metric" id="tier4-metric">-0%</span>
+                                        </li>
+                                    </ul>
+
+                                    <div class="hex-dump-box">
+                                        <div class="hex-title">Binary Bitstream Preview (Hex Dump):</div>
+                                        <pre id="hex-dump" class="hex-code">No compiled binary yet.</pre>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Advanced Architecture (Design Spec) Card -->
+                            <div class="card full-width">
+                                <div class="card-header">
+                                    <h3>Advanced Architecture (Design Spec Roadmap)</h3>
+                                    <span class="badge" id="verification-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">100% Lossless Round-Trip Verified</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="stats-grid" style="margin-bottom: 0.75rem;">
+                                        <div class="stat-card">
+                                            <div class="stat-label">RPO Fallthrough Elision</div>
+                                            <div class="stat-value text-accent" id="adv-rpo-elided">0 / 0</div>
+                                            <div class="stat-sub">Sequential edges cost 0 bits</div>
+                                        </div>
+                                        <div class="stat-card">
+                                            <div class="stat-label">Columnar Opcodes Stream</div>
+                                            <div class="stat-value text-purple" id="adv-opcodes-stream">0 B</div>
+                                            <div class="stat-sub">High run-length homogeneity</div>
+                                        </div>
+                                        <div class="stat-card">
+                                            <div class="stat-label">Backward Deltas Stream</div>
+                                            <div class="stat-value text-emerald" id="adv-deltas-stream">0 B</div>
+                                            <div class="stat-sub">Short live-range offsets</div>
+                                        </div>
+                                        <div class="stat-card">
+                                            <div class="stat-label">Immediates & Strings</div>
+                                            <div class="stat-value text-amber" id="adv-immediates-stream">0 B</div>
+                                            <div class="stat-sub">Front-coded & interned</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Control Flow Graph (CFG) -->
+                    <div id="cfg-tab" class="tab-pane">
+                        <div class="graph-toolbar">
+                            <div class="graph-mode-toggle">
+                                <label><input type="radio" name="cfg-view" value="raw" checked> Initial CFG</label>
+                                <label><input type="radio" name="cfg-view" value="ssa"> SSA CFG</label>
+                                <label><input type="radio" name="cfg-view" value="optimized"> Optimized CFG</label>
+                            </div>
+                            <div class="graph-controls">
+                                <button id="btn-fit-cfg" class="btn-sm">Fit View</button>
+                                <button id="btn-relayout-cfg" class="btn-sm">Relayout</button>
+                            </div>
+                        </div>
+                        <div class="graph-split-view">
+                            <div id="cfg-canvas" class="cytoscape-container"></div>
+                            <div class="block-inspector" id="block-inspector">
+                                <div class="inspector-header">Basic Block Details</div>
+                                <div id="inspector-content" class="inspector-content">
+                                    <em>Click a basic block in the graph to inspect instructions and live variables.</em>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: SSA & Dominance Engine -->
+                    <div id="ssa-tab" class="tab-pane">
+                        <div class="ssa-layout-grid">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Dominance Frontiers & IDom Table</h3>
+                                </div>
+                                <div class="card-body scrollable-card">
+                                    <table class="data-table" id="dominance-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Block</th>
+                                                <th>IDom (Immediate Dominator)</th>
+                                                <th>Dominance Frontier (DF)</th>
+                                                <th>Strict Dominators</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td colspan="4" class="text-center">Run compilation to inspect dominance.</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Dominator Tree Hierarchy</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div id="domtree-canvas" class="cytoscape-container domtree-container"></div>
+                                </div>
+                            </div>
+
+                            <div class="card ssa-ir-card full-width">
+                                <div class="card-header">
+                                    <h3>Linear IR Comparison (Raw TAC vs SSA Form)</h3>
+                                </div>
+                                <div class="card-body side-by-side">
+                                    <div class="ir-pane">
+                                        <h4>Raw 3-Address Code (TAC)</h4>
+                                        <pre id="raw-tac-code" class="code-box">No IR generated yet.</pre>
+                                    </div>
+                                    <div class="ir-pane">
+                                        <h4>SSA Form (with Phi Φ Functions)</h4>
+                                        <pre id="ssa-tac-code" class="code-box">No SSA generated yet.</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 4: Symbols & Constants -->
+                    <div id="symbols-tab" class="tab-pane">
+                        <div class="symbols-grid">
+                            <!-- Symbol Table Card -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Scoped Symbol Table & Identifier Minification</h3>
+                                    <span class="badge" id="sym-count-badge">0 Symbols</span>
+                                </div>
+                                <div class="card-body scrollable-card">
+                                    <table class="data-table" id="symbol-table-view">
+                                        <thead>
+                                            <tr>
+                                                <th>Original Identifier</th>
+                                                <th>Minified Alias</th>
+                                                <th>Type</th>
+                                                <th>Scope</th>
+                                                <th>References</th>
+                                                <th>Byte Offset</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td colspan="6" class="text-center">No symbols registered.</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Constant Pool Card -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Literal Constant Pool (Interning & Deduplication)</h3>
+                                    <span class="badge" id="const-count-badge">0 Literals</span>
+                                </div>
+                                <div class="card-body scrollable-card">
+                                    <table class="data-table" id="constant-pool-view">
+                                        <thead>
+                                            <tr>
+                                                <th>Pool Index</th>
+                                                <th>Literal Value</th>
+                                                <th>Type</th>
+                                                <th>Occurrences</th>
+                                                <th>Raw Size</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td colspan="5" class="text-center">No constants pooled.</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 5: Optimization Passes -->
+                    <div id="optimization-tab" class="tab-pane">
+                        <div class="opt-summary-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">Constant Folds</div>
+                                <div class="stat-value text-accent" id="opt-stat-folds">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Constant Propagations</div>
+                                <div class="stat-value text-emerald" id="opt-stat-props">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">GVN Common Subexpressions</div>
+                                <div class="stat-value text-amber" id="opt-stat-gvn">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Dead Instructions Removed</div>
+                                <div class="stat-value text-rose" id="opt-stat-dce">0</div>
+                            </div>
+                        </div>
+
+                        <div class="card full-width">
+                            <div class="card-header">
+                                <h3>Final Optimized & Compressed IR</h3>
+                            </div>
+                            <div class="card-body">
+                                <pre id="optimized-ir-code" class="code-box large">No optimized IR yet.</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 6: AST & Tokens -->
+                    <div id="ast-tab" class="tab-pane">
+                        <div class="ast-grid">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Abstract Syntax Tree (AST) Hierarchy</h3>
+                                </div>
+                                <div class="card-body scrollable-card">
+                                    <pre id="ast-tree-view" class="code-box json-box">No AST generated yet.</pre>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Lexical Token Stream</h3>
+                                </div>
+                                <div class="card-body scrollable-card">
+                                    <table class="data-table" id="tokens-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Type</th>
+                                                <th>Lexeme</th>
+                                                <th>Line</th>
+                                                <th>Column</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td colspan="4" class="text-center">No tokens generated.</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Application JavaScript Bundles -->
+    <script src="js/cfg_visualizer.js"></script>
+    <script src="js/metrics_chart.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
