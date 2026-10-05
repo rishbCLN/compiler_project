@@ -80,10 +80,15 @@ class SSATransformer:
                             op=Opcode.PHI,
                             result=var,
                             phi_args={},  # Pred_id -> var_version
-                            line=self.cfg.blocks[frontier_node].instructions[0].line if self.cfg.blocks[frontier_node].instructions else 1
+                            line=self.cfg.blocks[frontier_node].instructions[0].line if self.cfg.blocks[frontier_node].instructions else 1,
+                            annotation=var,  # Preserves exact base variable name for renaming
                         )
-                        # Prepend phi instruction to basic block
-                        self.cfg.blocks[frontier_node].instructions.insert(0, phi_instr)
+                        # Insert phi instruction after any leading labels in the basic block
+                        target_bb = self.cfg.blocks[frontier_node]
+                        insert_idx = 0
+                        while insert_idx < len(target_bb.instructions) and target_bb.instructions[insert_idx].op == Opcode.LABEL:
+                            insert_idx += 1
+                        target_bb.instructions.insert(insert_idx, phi_instr)
                         self.phi_nodes_inserted[frontier_node].append(phi_instr)
 
                         if frontier_node not in def_sites:
@@ -115,7 +120,7 @@ class SSATransformer:
         # 1. Process Phi-functions in this block: give new SSA names to their results
         for instr in bb.instructions:
             if instr.op == Opcode.PHI:
-                orig_var = instr.result
+                orig_var = instr.annotation or instr.result
                 if orig_var in self.stacks:
                     new_name = self.new_version(orig_var)
                     instr.result = new_name
@@ -165,8 +170,7 @@ class SSATransformer:
                 continue
             for succ_instr in succ_bb.instructions:
                 if succ_instr.op == Opcode.PHI:
-                    # Find base name of phi variable (e.g. from x_0 -> x)
-                    base_var = succ_instr.result.rsplit('_', 1)[0] if '_' in str(succ_instr.result) else str(succ_instr.result)
+                    base_var = succ_instr.annotation or (succ_instr.result.rsplit('_', 1)[0] if '_' in str(succ_instr.result) else str(succ_instr.result))
                     if base_var in self.stacks and self.stacks[base_var]:
                         curr_version = self.stacks[base_var][-1]
                         succ_instr.phi_args[b_id] = curr_version

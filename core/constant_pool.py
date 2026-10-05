@@ -90,16 +90,24 @@ class ConstantPool:
         total_pool_bytes = deduplicated_bytes + pool_overhead
 
         raw_bytes = self.total_raw_bytes
-        savings = max(0, raw_bytes - total_pool_bytes)
+        net_bytes_saved = raw_bytes - total_pool_bytes  # may be negative on tiny inputs
+        savings = max(0, net_bytes_saved)
         ratio = (savings / raw_bytes * 100) if raw_bytes > 0 else 0.0
+        net_ratio = (net_bytes_saved / raw_bytes * 100) if raw_bytes > 0 else 0.0
 
         return {
             "total_occurrences": self.total_raw_occurrences,
             "unique_constants": len(self.entries),
             "raw_constants_bytes": raw_bytes,
             "deduplicated_pool_bytes": total_pool_bytes,
+            "pool_overhead_bytes": pool_overhead,
             "bytes_saved": savings,
+            "net_bytes_saved": net_bytes_saved,
             "compression_percentage": round(ratio, 2),
+            # Honest net ratio: negative when pool/index overhead exceeds the raw
+            # literal footprint (common for very small programs with few repeats).
+            "net_compression_percentage": round(net_ratio, 2),
+            "overhead_exceeds_savings": net_bytes_saved < 0,
         }
 
     def serialize(self) -> bytearray:

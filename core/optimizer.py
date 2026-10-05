@@ -46,6 +46,10 @@ class IROptimizer:
             # Pass 4: CFG Simplification (prune dead blocks & merge)
             self.pass_cfg_simplification()
 
+            # Pass 5: Trivial Phi Elimination (phis with a single distinct
+            # incoming value become plain copies, enabling further folding).
+            self.pass_trivial_phi_elimination()
+
             curr_instr_count = sum(len(b.instructions) for b in self.cfg.blocks.values())
             if curr_instr_count == prev_instr_count:
                 break
@@ -197,12 +201,20 @@ class IROptimizer:
                     if cond_val is not None:
                         truthy = bool(cond_val[0])
                         should_jump = truthy if instr.op == Opcode.JUMP_IF_TRUE else (not truthy)
+                        # Resolve the branch-target block and the fallthrough block
+                        target_lbl = str(instr.result)
+                        target_bb_id = self.cfg.label_to_block.get(target_lbl)
                         if should_jump:
-                            # Turn into unconditional jump
+                            # Branch always taken: turn into unconditional jump,
+                            # sever every successor edge except the taken target.
                             new_instructions.append(Instruction(op=Opcode.JUMP, arg1=instr.result, line=instr.line))
+                            for succ_id in list(bb.successors):
+                                if succ_id != target_bb_id:
+                                    self._sever_edge(bb.id, succ_id)
                         else:
-                            # Branch never taken, remove jump (fall through)
-                            pass
+                            # Branch never taken: fall through, sever the target edge only.
+                            if target_bb_id is not None:
+                                self._sever_edge(bb.id, target_bb_id)
                         self.stats["constant_folds"] += 1
                         continue
 
@@ -210,24 +222,50 @@ class IROptimizer:
 
             bb.instructions = new_instructions
 
+    def _sever_edge(self, src_id: str, dst_id: str):
+        """Remove a CFG edge (src -> dst) and clean up any phi incoming args
+        in the destination block that referenced the now-dead predecessor."""
+        src_bb = self.cfg.blocks.get(src_id)
+        dst_bb = self.cfg.blocks.get(dst_id)
+        if src_bb is not None:
+            src_bb.successors.discard(dst_id)
+        if dst_bb is not None:
+            dst_bb.predecessors.discard(src_id)
+            # Drop phi arguments flowing from the severed predecessor
+            for instr in dst_bb.instructions:
+                if instr.op == Opcode.PHI and instr.phi_args and src_id in instr.phi_args:
+                    del instr.phi_args[src_id]
+        self.cfg.edge_types.pop((src_id, dst_id), None)
+
     # ---------------- Pass 2: Global Value Numbering (GVN) ----------------
 
     def pass_gvn(self):
         """
-        Global Value Numbering across basic blocks:
-        Maps (Opcode, Arg1, Arg2) -> primary_var_name.
-        If identical operation was previously computed, replace with COPY/ASSIGN.
+        Dominator-based Value Numbering (DVNT).
+        Maps (Opcode, Arg1, Arg2) -> primary_var_name, but an expression may
+        only be reused in a block that is DOMINATED by the block defining it.
+        This prevents illegally sharing values computed on disjoint branches.
         """
+        from core.dominator import DominanceAnalyzer
+
+        # Recompute dominance over the (possibly edge-mutated) CFG.
+        dom = DominanceAnalyzer(self.cfg)
+        dom.compute_all()
+
         expr_table: Dict[Tuple[str, str, str], str] = {}
 
-        for bb in self.cfg.blocks.values():
+        def visit(b_id: str):
+            bb = self.cfg.blocks.get(b_id)
+            if bb is None:
+                return
+            # Record keys inserted at this dom-tree level for backtracking.
+            inserted_keys: List[Tuple[str, str, str]] = []
             new_instructions: List[Instruction] = []
 
             for instr in bb.instructions:
                 if instr.op in (Opcode.ADD, Opcode.SUB, Opcode.MUL, Opcode.DIV, Opcode.MOD,
                                 Opcode.EQ, Opcode.NE, Opcode.LT, Opcode.LE, Opcode.GT, Opcode.GE,
                                 Opcode.AND, Opcode.OR):
-                    # Commutative canonicalization (ADD, MUL, EQ, NE)
                     a1 = str(instr.arg1)
                     a2 = str(instr.arg2)
                     if instr.op in (Opcode.ADD, Opcode.MUL, Opcode.EQ, Opcode.NE):
@@ -238,7 +276,6 @@ class IROptimizer:
 
                     if key in expr_table and instr.result:
                         existing_var = expr_table[key]
-                        # Replace computation with direct assignment from existing value
                         assigned = Instruction(
                             op=Opcode.ASSIGN,
                             arg1=existing_var,
@@ -251,10 +288,21 @@ class IROptimizer:
                         continue
                     elif instr.result:
                         expr_table[key] = instr.result
+                        inserted_keys.append(key)
 
                 new_instructions.append(instr)
 
             bb.instructions = new_instructions
+
+            # Recurse into blocks this block immediately dominates.
+            for child_id in dom.dom_tree.get(b_id, []):
+                visit(child_id)
+
+            # Backtrack: expressions defined here are not valid for siblings.
+            for key in inserted_keys:
+                expr_table.pop(key, None)
+
+        visit(self.cfg.entry_block_id)
 
     # ---------------- Pass 3: Dead Code Elimination (DCE) ----------------
 
@@ -267,11 +315,15 @@ class IROptimizer:
         while changed:
             changed = False
 
-            # Collect all variable uses across all blocks
+            # Collect all variable uses across all blocks.
+            # Cycle-aware: a PHI's reference to its own result does not keep it
+            # alive, so loop-carried phi cycles with no external use are dead.
             all_uses: Set[str] = set()
             for bb in self.cfg.blocks.values():
                 for instr in bb.instructions:
                     for u in instr.uses():
+                        if instr.op == Opcode.PHI and u == instr.result:
+                            continue
                         all_uses.add(u)
 
             # Eliminate unused definitions
@@ -303,3 +355,39 @@ class IROptimizer:
         pruned = self.cfg.prune_unreachable_blocks()
         if pruned > 0:
             self.stats["dead_blocks_removed"] += pruned
+        # After pruning, drop phi incoming args whose predecessor block no
+        # longer exists / is no longer a predecessor of the owning block.
+        for bb in self.cfg.blocks.values():
+            for instr in bb.instructions:
+                if instr.op == Opcode.PHI and instr.phi_args:
+                    stale = [p for p in instr.phi_args
+                             if p not in self.cfg.blocks or p not in bb.predecessors]
+                    for p in stale:
+                        del instr.phi_args[p]
+
+    # ---------------- Pass 5: Trivial Phi Elimination ----------------
+
+    def pass_trivial_phi_elimination(self):
+        """Replace phi nodes that have a single distinct incoming value (after
+        ignoring self-references) with a direct ASSIGN. Trivial phis commonly
+        appear once dead predecessor edges have been pruned."""
+        for bb in self.cfg.blocks.values():
+            new_instructions: List[Instruction] = []
+            for instr in bb.instructions:
+                if instr.op == Opcode.PHI:
+                    distinct = {v for v in instr.phi_args.values() if v != instr.result}
+                    if len(distinct) == 1:
+                        src = next(iter(distinct))
+                        new_instructions.append(Instruction(
+                            op=Opcode.ASSIGN,
+                            arg1=src,
+                            result=instr.result,
+                            line=instr.line,
+                            annotation="trivial_phi",
+                        ))
+                        continue
+                    elif len(distinct) == 0:
+                        # Phi carries no real value; drop it.
+                        continue
+                new_instructions.append(instr)
+            bb.instructions = new_instructions

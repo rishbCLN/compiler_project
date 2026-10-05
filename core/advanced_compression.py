@@ -48,7 +48,10 @@ class FrontCodedStringPool:
                 prefix_len += 1
 
             suffix = s[prefix_len:].encode('utf-8')
-            buf.append(prefix_len & 0xFF)
+            # LEB128-encode the shared-prefix length so prefixes >= 256 chars no
+            # longer wrap (the previous single-byte `prefix_len & 0xFF` form
+            # silently corrupted strings with >= 256 identical leading chars).
+            buf.extend(LEB128.encode_unsigned(prefix_len))
             buf.extend(LEB128.encode_unsigned(len(suffix)))
             buf.extend(suffix)
             prev = s
@@ -68,8 +71,8 @@ class FrontCodedStringPool:
         for _ in range(count):
             if offset >= len(data):
                 break
-            prefix_len = data[offset]
-            offset += 1
+            prefix_len, pfx_read = LEB128.decode_unsigned(data, offset)
+            offset += pfx_read
             suffix_len, bytes_read = LEB128.decode_unsigned(data, offset)
             offset += bytes_read
 
@@ -264,11 +267,27 @@ class ColumnarBytecodeSerializer:
 
     @classmethod
     def serialize_columns(cls, encoded_instructions: List[dict]) -> dict:
-        """Serializes encoded instructions into 4 columnar byte streams."""
+        """Serializes encoded instructions into 4 columnar byte streams.
+
+        The layout is fully reversible (see ``deserialize_columns``):
+          * PHI: flags byte = number of incoming edges; for each edge (sorted by
+            pred_id) the pred_id string is written to ``immediates`` and the
+            backward delta to ``deltas``.
+          * Regular: flags byte is a bitmask -
+              bit0 = arg1 delta present   bit1 = arg2 delta present
+              bit2 = arg1 raw present     bit3 = arg2 raw present
+              bit4 = result_label present
+            Fields are emitted in a fixed order: arg1, arg2, result_label.
+        """
         stream_opcodes = bytearray()
         stream_flags = bytearray()
         stream_deltas = bytearray()
         stream_immediates = bytearray()
+
+        def write_imm(s: str):
+            raw = s.encode('utf-8')
+            stream_immediates.extend(LEB128.encode_unsigned(len(raw)))
+            stream_immediates.extend(raw)
 
         for item in encoded_instructions:
             op = item["op"]
@@ -278,28 +297,39 @@ class ColumnarBytecodeSerializer:
             if item.get("is_phi"):
                 phi_deltas = item["phi_deltas"]
                 stream_flags.append(len(phi_deltas) & 0xFF)
-                for pred_id, delta in phi_deltas.items():
-                    stream_deltas.extend(LEB128.encode_unsigned(delta))
+                for pred_id in sorted(phi_deltas.keys()):
+                    write_imm(str(pred_id))
+                    stream_deltas.extend(LEB128.encode_unsigned(phi_deltas[pred_id]))
             else:
-                # Flag byte: bit 0 = arg1 is delta, bit 1 = arg2 is delta
                 flag = 0
                 if item.get("arg1_delta") is not None:
                     flag |= 0x01
-                    stream_deltas.extend(LEB128.encode_unsigned(item["arg1_delta"]))
                 elif item.get("arg1_raw") is not None:
-                    raw_str = item["arg1_raw"].encode('utf-8')
-                    stream_immediates.extend(LEB128.encode_unsigned(len(raw_str)))
-                    stream_immediates.extend(raw_str)
+                    flag |= 0x04
 
                 if item.get("arg2_delta") is not None:
                     flag |= 0x02
-                    stream_deltas.extend(LEB128.encode_unsigned(item["arg2_delta"]))
                 elif item.get("arg2_raw") is not None:
-                    raw_str = item["arg2_raw"].encode('utf-8')
-                    stream_immediates.extend(LEB128.encode_unsigned(len(raw_str)))
-                    stream_immediates.extend(raw_str)
+                    flag |= 0x08
+
+                if item.get("result_label") is not None:
+                    flag |= 0x10
 
                 stream_flags.append(flag)
+
+                # Fixed emission order: arg1, arg2, result_label
+                if flag & 0x01:
+                    stream_deltas.extend(LEB128.encode_unsigned(item["arg1_delta"]))
+                elif flag & 0x04:
+                    write_imm(item["arg1_raw"])
+
+                if flag & 0x02:
+                    stream_deltas.extend(LEB128.encode_unsigned(item["arg2_delta"]))
+                elif flag & 0x08:
+                    write_imm(item["arg2_raw"])
+
+                if flag & 0x10:
+                    write_imm(str(item["result_label"]))
 
         return {
             "opcodes": bytes(stream_opcodes),
@@ -308,6 +338,83 @@ class ColumnarBytecodeSerializer:
             "immediates": bytes(stream_immediates),
             "instruction_count": len(encoded_instructions),
         }
+
+    @classmethod
+    def deserialize_columns(cls, columns: dict) -> List[dict]:
+        """Reconstructs the encoded instruction dicts from columnar streams.
+
+        Inverse of ``serialize_columns``. The reconstructed dicts match the
+        encoder output except for the ``line`` field, which is intentionally not
+        part of the compressed payload.
+        """
+        opcodes = columns["opcodes"]
+        flags = columns["flags"]
+        deltas = columns["deltas"]
+        immediates = columns["immediates"]
+        count = columns["instruction_count"]
+
+        d_off = 0  # deltas cursor
+        i_off = 0  # immediates cursor
+        f_off = 0  # flags cursor
+
+        def read_delta():
+            nonlocal d_off
+            val, read = LEB128.decode_unsigned(deltas, d_off)
+            d_off += read
+            return val
+
+        def read_imm():
+            nonlocal i_off
+            ln, read = LEB128.decode_unsigned(immediates, i_off)
+            i_off += read
+            s = immediates[i_off:i_off + ln].decode('utf-8')
+            i_off += ln
+            return s
+
+        result: List[dict] = []
+        for idx in range(count):
+            op = cls.REVERSE_OPCODE.get(opcodes[idx], Opcode.NOP)
+            flag = flags[f_off]
+            f_off += 1
+
+            if op == Opcode.PHI:
+                phi_deltas = {}
+                for _ in range(flag):
+                    pred_id = read_imm()
+                    phi_deltas[pred_id] = read_delta()
+                result.append({
+                    "op": op,
+                    "is_phi": True,
+                    "phi_deltas": phi_deltas,
+                })
+            else:
+                arg1_delta = arg2_delta = None
+                arg1_raw = arg2_raw = None
+                result_label = None
+
+                if flag & 0x01:
+                    arg1_delta = read_delta()
+                elif flag & 0x04:
+                    arg1_raw = read_imm()
+
+                if flag & 0x02:
+                    arg2_delta = read_delta()
+                elif flag & 0x08:
+                    arg2_raw = read_imm()
+
+                if flag & 0x10:
+                    result_label = read_imm()
+
+                result.append({
+                    "op": op,
+                    "is_phi": False,
+                    "arg1_delta": arg1_delta,
+                    "arg2_delta": arg2_delta,
+                    "arg1_raw": arg1_raw,
+                    "arg2_raw": arg2_raw,
+                    "result_label": result_label,
+                })
+        return result
 
     @classmethod
     def pack_container(cls, columns: dict, front_coded_symbols: bytes) -> bytes:
@@ -409,6 +516,17 @@ class AdvancedIRCompressionEngine:
         recovered_strings = FrontCodedStringPool.decode(unpacked_sym_bytes)
         assert set(recovered_strings) == set(symbol_names), "Symbol table string pool mismatch!"
 
+        # Full instruction-level round-trip: reconstruct the encoded instruction
+        # dicts from the columnar streams and verify they match the encoder output
+        # exactly (ignoring the non-serialized source `line` field). This proves
+        # jump targets and phi predecessors survive the columnar bitstream.
+        def _strip_line(items):
+            return [{k: v for k, v in it.items() if k != "line"} for it in items]
+
+        reconstructed = ColumnarBytecodeSerializer.deserialize_columns(unpacked_columns)
+        assert reconstructed == _strip_line(encoded_instructions), \
+            "Columnar SoA instruction round-trip mismatch (jump targets / phi preds lost)!"
+
         # Compute Comparative Metrics
         raw_text = "\n".join(str(i) for i in raw_instructions)
         raw_text_bytes = len(raw_text.encode('utf-8'))
@@ -438,5 +556,5 @@ class AdvancedIRCompressionEngine:
             "final_advanced_bitstream_bytes": final_bitstream_bytes,
             "final_advanced_compression_percent": round(overall_compression_percent, 2),
             "is_entropy_packed": is_entropy_packed,
-            "verification_status": "100% Lossless Round-Trip Verified",
+            "verification_status": "Lossless Round-Trip Verified (full instruction reconstruction)",
         }

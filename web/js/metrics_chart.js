@@ -4,7 +4,7 @@
 
 let compressionChartInstance = null;
 
-function renderCompressionChart(metrics) {
+function renderCompressionChart(metrics, advanced) {
     const canvas = document.getElementById('compression-chart');
     if (!canvas) return;
 
@@ -13,28 +13,36 @@ function renderCompressionChart(metrics) {
     const bcBytes = metrics.binary_bytecode_bytes || 35;
     const huffBytes = metrics.huffman_compressed_bytes || 20;
 
+    const labels = [
+        '1. Raw Text IR',
+        '2. SSA Optimized IR',
+        '3. Binary Bytecode',
+        '4. Huffman Compressed'
+    ];
+    const values = [rawBytes, optBytes, bcBytes, huffBytes];
+    const bgColors = [
+        'rgba(148, 163, 184, 0.4)',  // Slate (Raw)
+        'rgba(59, 130, 246, 0.65)',  // Blue (SSA Opt)
+        'rgba(139, 92, 246, 0.75)',  // Purple (Bytecode)
+        'rgba(6, 182, 212, 0.9)'     // Cyan (Huffman Final)
+    ];
+    const borderColors = ['#94a3b8', '#3b82f6', '#8b5cf6', '#06b6d4'];
+
+    // 5th bar: Advanced SoA (columnar) bitstream, when the server surfaces it.
+    if (advanced && typeof advanced.final_advanced_bitstream_bytes === 'number') {
+        labels.push('5. Advanced SoA Bitstream');
+        values.push(advanced.final_advanced_bitstream_bytes);
+        bgColors.push('rgba(16, 185, 129, 0.9)');  // Emerald (Advanced)
+        borderColors.push('#10b981');
+    }
+
     const data = {
-        labels: [
-            '1. Raw Text IR',
-            '2. SSA Optimized IR',
-            '3. Binary Bytecode',
-            '4. Huffman Compressed'
-        ],
+        labels: labels,
         datasets: [{
             label: 'Size in Bytes (Lower is better)',
-            data: [rawBytes, optBytes, bcBytes, huffBytes],
-            backgroundColor: [
-                'rgba(148, 163, 184, 0.4)',  // Slate (Raw)
-                'rgba(59, 130, 246, 0.65)',  // Blue (SSA Opt)
-                'rgba(139, 92, 246, 0.75)',  // Purple (Bytecode)
-                'rgba(6, 182, 212, 0.9)'     // Cyan (Huffman Final)
-            ],
-            borderColor: [
-                '#94a3b8',
-                '#3b82f6',
-                '#8b5cf6',
-                '#06b6d4'
-            ],
+            data: values,
+            backgroundColor: bgColors,
+            borderColor: borderColors,
             borderWidth: 1.5,
             borderRadius: 6,
         }]
@@ -94,7 +102,9 @@ function renderCompressionChart(metrics) {
             }
         },
         animation: {
-            duration: 600,
+            duration: (window.matchMedia
+                && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+                ? 0 : 600,
             easing: 'easeOutQuart'
         }
     };

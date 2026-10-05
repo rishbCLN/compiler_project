@@ -72,7 +72,7 @@ def run_cli_pipeline(source_code: str, show_stats: bool = True):
     # 6. Binary Bytecode & Huffman Entropy Compression
     with console.status("[bold green]Serializing Binary Bytecode & Packing Canonical Huffman Bitstream..."):
         metrics = IRCompressionPipeline.run(
-            raw_instructions=raw_instructions,
+            raw_instructions=initial_raw_instructions,
             optimized_instructions=opt_instructions,
             symbol_table=symbol_table,
             constant_pool=constant_pool

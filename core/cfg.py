@@ -29,6 +29,16 @@ class BasicBlock:
             return self.instructions[-1]
         return None
 
+    def clone(self) -> 'BasicBlock':
+        from copy import deepcopy
+        return BasicBlock(
+            id=self.id,
+            instructions=[deepcopy(i) for i in self.instructions],
+            predecessors=set(self.predecessors),
+            successors=set(self.successors),
+            label=self.label
+        )
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -47,6 +57,15 @@ class ControlFlowGraph:
         self.label_to_block: Dict[str, str] = {}
         # Edge metadata: (src, dst) -> "fallthrough" | "jump" | "branch_true" | "branch_false"
         self.edge_types: Dict[Tuple[str, str], str] = {}
+
+    def clone(self) -> 'ControlFlowGraph':
+        new_cfg = ControlFlowGraph()
+        new_cfg.entry_block_id = self.entry_block_id
+        new_cfg.label_to_block = dict(self.label_to_block)
+        new_cfg.edge_types = dict(self.edge_types)
+        for b_id, b in self.blocks.items():
+            new_cfg.blocks[b_id] = b.clone()
+        return new_cfg
 
     def get_block(self, block_id: str) -> Optional[BasicBlock]:
         return self.blocks.get(block_id)
@@ -97,8 +116,9 @@ class ControlFlowGraph:
 
             if current_bb is not None:
                 current_bb.instructions.append(instr)
-                if instr.op == Opcode.LABEL and current_bb.label is None:
-                    current_bb.label = str(instr.arg1)
+                if instr.op == Opcode.LABEL:
+                    if current_bb.label is None:
+                        current_bb.label = str(instr.arg1)
                     cfg.label_to_block[str(instr.arg1)] = current_bb.id
 
         if not block_list:

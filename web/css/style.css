@@ -770,3 +770,139 @@ body {
         height: 420px;
     }
 }
+
+/* ==========================================================================
+   Toast Notifications (non-blocking replacement for alert())
+   ========================================================================== */
+.toast-container {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-width: 380px;
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: auto;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--accent-blue);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 0.85rem;
+    line-height: 1.45;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(12px);
+    white-space: pre-line;
+    opacity: 0;
+    transform: translateX(20px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast.toast-error {
+    border-left-color: var(--accent-rose);
+}
+
+.toast.toast-success {
+    border-left-color: var(--accent-emerald);
+}
+
+.toast.toast-info {
+    border-left-color: var(--accent-blue);
+}
+
+.toast-title {
+    display: block;
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.2rem;
+    color: var(--text-secondary);
+}
+
+/* Constant-pool net-savings honesty summary */
+.pool-summary {
+    font-family: var(--font-ui);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    margin-bottom: 0.85rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+}
+
+.pool-summary:empty {
+    display: none;
+}
+
+.pool-summary-ok {
+    border-left: 3px solid var(--accent-emerald);
+}
+
+.pool-summary-warn {
+    border-left: 3px solid var(--accent-amber);
+    color: var(--text-primary);
+}
+
+.pool-summary-badge {
+    display: inline-block;
+    font-weight: 700;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.1rem 0.45rem;
+    border-radius: var(--radius-full);
+    margin-right: 0.5rem;
+}
+
+.pool-summary-badge.ok {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--accent-emerald);
+}
+
+.pool-summary-badge.warn {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--accent-amber);
+}
+
+/* ==========================================================================
+   Accessibility: visible focus + reduced-motion
+   ========================================================================== */
+:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+/* Buttons/tabs get a slightly stronger ring for clarity. */
+.tab-btn:focus-visible,
+.btn:focus-visible,
+button:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+}

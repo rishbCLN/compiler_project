@@ -104,6 +104,10 @@ def compile_code(req: CompileRequest):
         cfg = ControlFlowGraph.build(raw_instructions)
         cfg_stats_initial = cfg.get_stats()
         cfg_elements = cfg.to_cytoscape_elements()
+        # Snapshot the raw-CFG block serialization NOW, before SSA renaming and
+        # the optimizer mutate these Instruction objects in place. Without this,
+        # the raw-CFG tab would display post-optimization instruction text.
+        cfg_blocks_initial = {b_id: b.to_dict() for b_id, b in cfg.blocks.items()}
 
         # 5. Dominance Analysis (Dominators, IDom, DomTree, DF)
         dom = DominanceAnalyzer(cfg)
@@ -131,7 +135,7 @@ def compile_code(req: CompileRequest):
 
         # 9. Binary Bytecode Serialization & Canonical Huffman Compression
         pipeline_metrics = IRCompressionPipeline.run(
-            raw_instructions=raw_instructions,
+            raw_instructions=initial_raw_instructions,
             optimized_instructions=opt_instructions,
             symbol_table=symbol_table,
             constant_pool=constant_pool
@@ -157,7 +161,7 @@ def compile_code(req: CompileRequest):
                 "count": len(initial_raw_instructions),
             },
             "cfg": {
-                "blocks": {b_id: b.to_dict() for b_id, b in cfg.blocks.items()},
+                "blocks": cfg_blocks_initial,
                 "stats": cfg_stats_initial,
                 "elements": cfg_elements,
             },

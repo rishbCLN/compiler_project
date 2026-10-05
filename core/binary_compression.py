@@ -224,6 +224,23 @@ class BytecodeEmitter:
         # Maps label name -> integer label ID
         self.label_to_id: Dict[str, int] = {}
 
+    @staticmethod
+    def _classify_const(value: Any) -> str:
+        """Infer the constant-pool type of a literal from its textual form."""
+        s = str(value)
+        if s in ("true", "false"):
+            return "bool"
+        if s.startswith('"') and s.endswith('"'):
+            return "string"
+        try:
+            if '.' in s:
+                float(s)
+                return "float"
+            int(s)
+            return "int"
+        except ValueError:
+            return "string"
+
     def get_var_id(self, name: Optional[str]) -> int:
         if name is None:
             return 0
@@ -257,8 +274,14 @@ class BytecodeEmitter:
         elif instr.op == Opcode.LOAD_CONST:
             res_id = self.get_var_id(instr.result)
             buf.extend(LEB128.encode_unsigned(res_id))
-            # Try to register constant or encode
-            pool_id = self.constant_pool.register(str(instr.arg1), "string")
+            # Look up the already-registered pool index (registration happens in a
+            # pre-pass BEFORE the constant pool is serialized). Fall back to a
+            # (correctly typed) registration only if somehow missing.
+            const_type = self._classify_const(instr.arg1)
+            key = self.constant_pool._get_key(str(instr.arg1), const_type)
+            pool_id = self.constant_pool.value_to_index.get(key)
+            if pool_id is None:
+                pool_id = self.constant_pool.register(str(instr.arg1), const_type)
             buf.extend(LEB128.encode_unsigned(pool_id))
 
         elif instr.op == Opcode.ASSIGN:
@@ -282,6 +305,17 @@ class BytecodeEmitter:
             arg_id = self.get_var_id(str(instr.arg1)) if instr.arg1 else 0
             buf.extend(LEB128.encode_unsigned(arg_id))
 
+        elif instr.op in (Opcode.NEG, Opcode.NOT):
+            # Unary operations: result, arg1 only.
+            res_id = self.get_var_id(instr.result)
+            a1_id = self.get_var_id(str(instr.arg1))
+            buf.extend(LEB128.encode_unsigned(res_id))
+            buf.extend(LEB128.encode_unsigned(a1_id))
+
+        elif instr.op == Opcode.NOP:
+            # No operands.
+            pass
+
         else:
             # Binary operations: result, arg1, arg2
             res_id = self.get_var_id(instr.result)
@@ -300,7 +334,18 @@ class BytecodeEmitter:
         # Version 1.0
         package.append(1)
 
-        # Constant Pool section
+        # Constant Pool section.
+        # Pre-register every LOAD_CONST literal (with its correct type) BEFORE
+        # serializing the pool, so the serialized header and the bytecode indices
+        # stay consistent. Registering during emit_instruction would mutate the
+        # pool after it had already been written.
+        for instr in instructions:
+            if instr.op == Opcode.LOAD_CONST and instr.arg1 is not None:
+                const_type = self._classify_const(instr.arg1)
+                key = self.constant_pool._get_key(str(instr.arg1), const_type)
+                if key not in self.constant_pool.value_to_index:
+                    self.constant_pool.register(str(instr.arg1), const_type)
+
         cp_bytes = self.constant_pool.serialize()
         package.extend(LEB128.encode_unsigned(len(cp_bytes)))
         package.extend(cp_bytes)

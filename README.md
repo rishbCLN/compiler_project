@@ -3,7 +3,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688.svg)](https://fastapi.tiangolo.com/)
-[![Tests](https://img.shields.io/badge/Tests-19%20Passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-52%20Passing-brightgreen.svg)]()
 [![Academic](https://img.shields.io/badge/Level-3rd%20Year%20B.Tech%20Project-orange.svg)]()
 
 An end-to-end, academic-grade compiler engineering project focusing on **Intermediate Representation (IR) Compression**:
@@ -11,7 +11,7 @@ An end-to-end, academic-grade compiler engineering project focusing on **Interme
 2. **Static Single Assignment (SSA)** transformation using Dominator Trees and Dominance Frontiers (Cytron's Algorithm).
 3. **Symbol Table Minification** (frequency-based short aliasing) & **Constant Pool Deduplication** (literal interning).
 4. **Multi-Pass IR Optimizer**: Constant Folding & Propagation, Global Value Numbering (GVN/CSE), Dead Code Elimination (DCE), and CFG Simplification.
-5. **Physical Byte-Level IR Compression**: Compact binary bytecode serialization with **LEB128 variable-length integer encoding** and **Canonical Huffman entropy coding** (achieving **60% to 85% total reduction**).
+5. **Physical Byte-Level IR Compression**: Compact binary bytecode serialization with **LEB128 variable-length integer encoding** and **Canonical Huffman entropy coding**, plus an advanced **Columnar Structure-of-Arrays** path (achieving **~36% to 75% total reduction** on the bundled benchmarks).
 6. **Interactive Web Studio**: Real-time visual explorer with Cytoscape.js CFG rendering, Dominator Tree hierarchy, step-by-step diffs, symbol inspector, and Chart.js analytics.
 
 ---
@@ -47,7 +47,7 @@ flowchart TD
     subgraph PhysicalCompression ["Physical Byte-Level Compression"]
         CompactIR --> Bytecode["Compact Binary Bytecode (Opcode + LEB128)"]
         Bytecode --> Huffman["Canonical Huffman Entropy Coding"]
-        Huffman --> CIRFile["Compressed IR Bitstream (.cir): 60-85% Saved"]
+        Huffman --> CIRFile["Compressed IR Bitstream (.cir): ~36-75% Saved"]
     end
 
     subgraph PresentationInterfaces ["Presentation & Defense Interfaces"]
@@ -89,7 +89,14 @@ Execute the unit and integration tests with `pytest`:
 ```powershell
 python -m pytest tests/ -v
 ```
-*(All 19 tests pass with 100% code coverage across all compiler modules.)*
+*(All 52 tests pass — 38 unit/integration tests covering the lexer, parser, SSA, optimizer passes, bytecode/Huffman compression, the advanced columnar engine, and dedicated regression tests for every fixed optimizer/serialization bug, plus 14 headless-browser UI tests driving the Web Studio end-to-end.)*
+
+For the headless browser UI suite, install the dev dependencies first:
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m playwright install chromium
+python -m pytest tests/ui -v
+```
 
 ---
 
@@ -99,11 +106,17 @@ Tested across 5 standard compiler benchmarks:
 
 | Benchmark File | Focus | Raw TAC Instrs | Optimized SSA Instrs | Instruction Reduction | Raw IR Size | Bytecode Size | Final Bitstream | Total Compression |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| `sample1_arithmetic_constants.lang` | Constant folding, algebraic identities | 33 | 6 | **81.8%** | 499 B | 87 B | 232 B | **53.5%** |
-| `sample2_loops_and_conditionals.lang` | CFG branching, SSA $\phi$-nodes | 32 | 21 | **34.4%** | 415 B | 105 B | 203 B | **51.1%** |
-| `sample3_redundant_gvn.lang` | Global Value Numbering & CSE | 31 | 18 | **41.9%** | 396 B | 94 B | 192 B | **51.5%** |
-| `sample4_dead_code.lang` | Dead branch pruning & DCE | 22 | 4 | **81.8%** | 297 B | 62 B | 148 B | **50.2%** |
-| `sample5_matrix_fibonacci.lang` | Loop accumulation & iterative flow | 31 | 22 | **29.0%** | 388 B | 102 B | 199 B | **48.7%** |
+| `sample1_arithmetic_constants.lang` | Constant folding, algebraic identities | 33 | 6 | **81.8%** | 376 B | 87 B | 232 B | **38.3%** |
+| `sample2_loops_and_conditionals.lang` | CFG branching, SSA $\phi$-nodes | 32 | 17 | **46.9%** | 360 B | 90 B | 182 B | **49.4%** |
+| `sample3_redundant_gvn.lang` | Global Value Numbering & CSE | 32 | 7 | **78.1%** | 360 B | 44 B | 98 B | **72.8%** |
+| `sample4_dead_code.lang` | Dead branch pruning & DCE | 28 | 3 | **89.3%** | 360 B | 61 B | 132 B | **63.3%** |
+| `sample5_matrix_fibonacci.lang` | Loop accumulation & iterative flow | 27 | 22 | **18.5%** | 332 B | 104 B | 208 B | **37.4%** |
+
+> **Final Bitstream** is the single-stream canonical-Huffman package. On these
+> small inputs the Huffman frequency-table header can exceed the raw bytecode, so
+> the headline savings come from the **Advanced Columnar SoA + entropy** path
+> (see the CLI's *Final Advanced Bitstream* row), which reaches **36–75%** on the
+> same programs by separating opcode/flag/delta/immediate streams before packing.
 
 ---
 
@@ -134,7 +147,7 @@ d:/compiler_project/
 │       ├── cfg_visualizer.js     # Cytoscape.js CFG & Dominator Tree rendering
 │       └── metrics_chart.js      # Chart.js compression visualization
 ├── benchmarks/                   # Preset academic test suites (.lang files)
-├── tests/                        # 19 comprehensive unit & integration tests
+├── tests/                        # 38 comprehensive unit, integration & regression tests
 ├── docs/                         # Academic Deliverables
 │   ├── PROJECT_REPORT.md         # Full formal 3rd-year engineering project report
 │   └── VIVA_QUESTIONS.md         # Top 25 Viva Voce questions & answers
@@ -148,3 +161,4 @@ d:/compiler_project/
 ## 🎓 Academic Viva & Presentation Kit
 - **Full Formal Report**: [docs/PROJECT_REPORT.md](docs/PROJECT_REPORT.md) (Abstract, Literature Review, Methodology, Dataflow Equations, Results, References).
 - **Top 25 Viva Questions**: [docs/VIVA_QUESTIONS.md](docs/VIVA_QUESTIONS.md) (Detailed answers to questions on SSA, Dominance Frontiers, GVN, Constant Folding, and Bytecode compression).
+

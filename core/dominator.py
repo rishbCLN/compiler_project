@@ -28,14 +28,28 @@ class DominanceAnalyzer:
         self.build_dom_tree()
         self.compute_dominance_frontiers()
 
+    def _compute_reachable_blocks(self) -> Set[str]:
+        reachable: Set[str] = set()
+        queue = [self.entry] if self.entry in self.cfg.blocks else []
+        while queue:
+            curr = queue.pop(0)
+            if curr in reachable:
+                continue
+            reachable.add(curr)
+            if curr in self.cfg.blocks:
+                for succ in self.cfg.blocks[curr].successors:
+                    if succ not in reachable and succ in self.cfg.blocks:
+                        queue.append(succ)
+        return reachable
+
     def compute_dominators(self):
         """
         Computes the set of all dominators Dom(B) for each basic block using fixed-point iteration:
         Dom(Entry) = { Entry }
         Dom(B) = { B } U (Intersection of Dom(P) for all P in Pred(B))
         """
-        all_blocks = set(self.blocks)
-        self.dominators = {b: set(all_blocks) for b in self.blocks}
+        reachable = self._compute_reachable_blocks()
+        self.dominators = {b: set(reachable) if b in reachable else {b} for b in self.blocks}
 
         if self.entry in self.dominators:
             self.dominators[self.entry] = {self.entry}
@@ -44,10 +58,10 @@ class DominanceAnalyzer:
         while changed:
             changed = False
             for b in self.blocks:
-                if b == self.entry:
+                if b == self.entry or b not in reachable:
                     continue
 
-                preds = self.cfg.blocks[b].predecessors
+                preds = [p for p in self.cfg.blocks[b].predecessors if p in reachable]
                 if not preds:
                     new_dom = {b}
                 else:
@@ -67,8 +81,9 @@ class DominanceAnalyzer:
         """
         IDom(B) is the unique strict dominator of B that does not dominate any other strict dominator of B.
         """
+        reachable = self._compute_reachable_blocks()
         for b in self.blocks:
-            if b == self.entry:
+            if b == self.entry or b not in reachable:
                 self.idom[b] = None
                 continue
 
@@ -108,8 +123,11 @@ class DominanceAnalyzer:
         for b in self.blocks:
             self.dom_frontiers[b] = set()
 
+        reachable = self._compute_reachable_blocks()
         for b in self.blocks:
-            preds = self.cfg.blocks[b].predecessors
+            if b not in reachable:
+                continue
+            preds = [p for p in self.cfg.blocks[b].predecessors if p in reachable]
             if len(preds) >= 2:
                 for p in preds:
                     runner = p
