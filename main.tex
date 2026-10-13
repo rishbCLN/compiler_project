@@ -1,12 +1,16 @@
 % =========================================================================
 % IEEE Access LaTeX Template
 % Project: Intermediate Representation (IR) Compression Studio
-% Compatible with Overleaf (IEEE Access Template) and standard LaTeX engines.
-% If compiling in a standard environment without ieeeaccess.cls installed,
-% you can toggle to \documentclass[journal]{IEEEtran} below.
+% Dual-compatible with IEEE Access (Overleaf) and IEEEtran (Local).
 % =========================================================================
 
-\documentclass{ieeeaccess}
+\newif\ifieeeaccess % chktex 1
+\IfFileExists{ieeeaccess.cls}{
+  \documentclass{ieeeaccess}
+  \ieeeaccesstrue % chktex 1
+}{
+  \documentclass[journal]{IEEEtran}
+}
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
@@ -18,6 +22,10 @@
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage{tabularx}
+
+\ifieeeaccess\else
+\newcommand{\PARstart}[2]{\IEEEPARstart{#1}{#2}}
+\fi
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -40,54 +48,70 @@
 }
 
 \begin{document}
+\ifieeeaccess % chktex 1
 \history{Date of publication October 13, 2026, date of current version October 13, 2026.}
 \doi{10.1109/ACCESS.2026.IRCOMPRESS}
+\fi
 
-\title{End-to-End Intermediate Representation Optimization and Lossless Bitstream Compression for Edge and Embedded Runtimes}
+\title{Synergistic Intermediate Representation Optimization and Lossless Bitstream Compression for Constrained Runtimes}
 
+\ifieeeaccess % chktex 1
 \author{\uppercase{Rishabh Kumar}\authorrefmark{1}, \uppercase{and Co-Authors}\authorrefmark{1}}
 \address[1]{Department of Computer Science and Engineering, Technological Institute, India}
 \tfootnote{This work was supported in part by the Academic Compiler Engineering Laboratory.}
 
-\markboth
-{Author \headeretal: End-to-End Intermediate Representation Optimization and Bitstream Compression}
-{Author \headeretal: End-to-End Intermediate Representation Optimization and Bitstream Compression}
+\markboth{Author \headeretal: Synergistic Intermediate Representation Optimization and Lossless Bitstream Compression}{Author \headeretal: Synergistic Intermediate Representation Optimization and Lossless Bitstream Compression}
 
 \corresp{Corresponding author: Rishabh Kumar (e-mail: author@university.edu).}
+\else
+\author{Rishabh Kumar and Co-Authors
+\thanks{Department of Computer Science and Engineering, Technological Institute, India.}
+\thanks{This work was supported in part by the Academic Compiler Engineering Laboratory.}
+\thanks{Corresponding author: Rishabh Kumar (e-mail: author@university.edu). Date of publication and current version: October 13, 2026. DOI: \protect\url{10.1109/ACCESS.2026.IRCOMPRESS}.}} % chktex 13
+\markboth{Rishabh Kumar et al.: IR Optimization and Compression}{IR Compression Studio}
+\fi
+\ifieeeaccess\else\maketitle\fi
 
 \begin{abstract}
-In modern optimizing compiler architectures, Intermediate Representation (IR) serves as the primary substrate decoupling high-level source languages from machine-dependent execution targets. However, unoptimized IR manifests significant structural verbosity and physical memory inflation, posing severe throughput and bandwidth bottlenecks in resource-constrained environments such as embedded Internet-of-Things (IoT) controllers, distributed micro-kernels, and sandboxed WebAssembly execution runtimes. This paper presents \textit{IR Compression Studio}, a holistic, multi-tier compiler framework bridging mathematical graph optimization and information-theoretic physical bitstream serialization. The system ingests imperative source code into a linear Three-Address Code (TAC), constructs a leader-partitioned Control Flow Graph (CFG), and computes Dominator Trees and Dominance Frontiers to achieve Cytron-style semi-pruned Static Single Assignment (SSA) form with dynamic $\phi$-function insertion. On this SSA substrate, a multi-pass optimization engine performs sparse constant propagation, algebraic identity reduction, commutative Global Value Numbering (GVN), and backward mark-sweep Dead Code Elimination (DCE). Memory-reduction layers incorporate frequency-driven scoped symbol table minification and constant pool interning. Finally, instructions are transformed into a compact binary bytecode via Little-Endian Base 128 (LEB128) variable-length operand encoding and serialized into a compressed bitstream using Canonical Huffman entropy coding. Empirical evaluations across diverse benchmark programs show an 18.5\% to 89.3\% reduction in total IR instruction count and up to a 75.0\% byte-level footprint reduction over raw IR representations, verified through full round-trip semantic reconstruction.
+Within modern compilation frameworks, intermediate representations (IR) decouple source language semantics from heterogeneous target instruction sets. However, unoptimized IR emissions frequently display considerable syntactic redundancy and substantial memory footprints, introducing significant bandwidth and latency overheads in resource-bounded deployment environments like embedded microcontrollers, edge IoT devices, and WebAssembly containers. This paper introduces \textit{IR Compression Studio}, a multi-tiered compilation and serialization system that bridges semantic data-flow graph transformations with physical entropy-coded serialization. The framework translates imperative source code into a linear Three-Address Code (TAC), isolates basic blocks via boundary leader detection, and calculates dominance frontiers to instantiate a semi-pruned Static Single Assignment (SSA) representation. Built upon this normalized SSA substrate, the multi-pass optimizer executes sparse constant propagation, algebraic property simplification, commutative Global Value Numbering (GVN), and backward mark-sweep Dead Code Elimination (DCE). Complementing these control-flow transformations, the system deploys frequency-weighted identifier minification and literal interning to minimize symbol table overhead. In the physical serialization layer, quadruples are converted into a compact binary bytecode through Little-Endian Base 128 (LEB128) variable-length operand packing and compressed into a lossless bitstream via Canonical Huffman entropy coding. Across five benchmark evaluations, the pipeline yields between 18.5\% and 89.3\% reduction in executable instruction volume and achieves up to a 75.0\% net reduction in physical byte footprint, validated with 100\% lossless round-trip semantic fidelity.
 \end{abstract}
 
+\ifieeeaccess % chktex 1
 \begin{keywords}
 Compiler Optimization, Intermediate Representation, Static Single Assignment (SSA), Control Flow Graph, Dominance Frontier, Constant Folding, Global Value Numbering, Canonical Huffman Coding, LEB128, Bitstream Compression.
 \end{keywords}
+\else
+\begin{IEEEkeywords}
+Compiler Optimization, Intermediate Representation, Static Single Assignment (SSA), Control Flow Graph, Dominance Frontier, Constant Folding, Global Value Numbering, Canonical Huffman Coding, LEB128, Bitstream Compression.
+\end{IEEEkeywords}
+\fi
 
+\ifieeeaccess % chktex 1
 \titlepgskip<15pt>
-
 \maketitle
+\fi
 
 \section{Introduction}
-\label{sec:introduction}
-\PARstart{I}{ntermediate} Representations (IR) constitute the universal pivot in modern compiler infrastructure, bridging lexical and syntactic frontends with target-specific code generators~\cite{aho2006compilers}. Contemporary execution paradigms—including Just-In-Time (JIT) compilation in cloud environments, bytecode interpretation in smartcards, and portable execution in WebAssembly runtimes—increasingly distribute and store programs in an intermediate format rather than bare-metal machine code~\cite{muchnick1997advanced}.
+\label{sec:introduction} % chktex 24
+\PARstart{T}{he} architecture of optimizing compilers hinges upon Intermediate Representations (IR) to insulate front-end lexical processing from down-stream code generation and target architecture specifics~\cite{aho2006compilers}. Contemporary distributed paradigms—spanning edge-cloud collaborative processing, micro-kernel dispatch, and sandboxed WebAssembly execution—increasingly deploy and transmit application payloads in intermediate bytecode formats to preserve portability and platform neutrality~\cite{muchnick1997advanced}.
 
-Despite its analytical versatility, Three-Address Code (TAC) and similar quadruples-based IRs suffer from extensive structural and representation bloat. Naive translation from Abstract Syntax Trees (AST) introduces redundant temporaries, dead basic blocks, and repeated literal declarations. Furthermore, when serialized as text or uncompressed binary streams, IR files impose burdensome memory footprints and transmission latencies across distributed network channels.
+Nevertheless, unrefined linear IR structures, such as quadruples or Three-Address Code (TAC), incur pronounced representation inflation. Naive syntax lowering frequently injects excessive temporary registers, unpruned basic blocks, and duplicate constant declarations. When transmitted across band-limited networks or stored within constrained embedded caches, this footprint inflation triggers measurable performance and storage penalties.
 
-Traditional compression mechanisms such as DEFLATE, gzip, or Zstandard operate solely on raw byte distributions without understanding program data-flow or syntactic dominance. Consequently, they fail to leverage mathematical optimizations that eliminate semantic redundancies before serialization.
+Standard byte-level compression utilities (such as gzip, DEFLATE, and Zstandard) operate strictly upon statistical byte correlations. Because these general-purpose tools lack semantic awareness of data-flow dependencies, variable live ranges, and dominance hierarchies, they cannot eliminate structural redundancies before bitstream encoding.
 
-To address these limitations, this paper proposes \textbf{IR Compression Studio}, an integrated, academic-grade compilation and serialization framework that simultaneously executes:
+To overcome these architectural challenges, this investigation develops \textbf{IR Compression Studio}, an integrated system uniting high-level program graph compaction with low-level binary entropy coding:
 \begin{enumerate}
-    \item \textbf{High-Level Dataflow Optimizations}: Constructing Control Flow Graphs (CFG), computing Dominance Frontiers via Cytron's algorithm, and transforming linear TAC into semi-pruned Static Single Assignment (SSA) form.
-    \item \textbf{Multi-Pass IR Simplification}: Sparse constant folding, algebraic reductions, commutative Global Value Numbering (GVN), and reachability-based dead block pruning.
-    \item \textbf{Metadata Minification}: Frequency-weighted symbol renaming and centralized constant pool literal interning.
-    \item \textbf{Physical Bitstream Serialization}: Variable-length integer encoding (LEB128) combined with Canonical Huffman entropy coding, accompanied by a Columnar Structure-of-Arrays (SoA) layout.
+    \item \textbf{Graph-Theoretic Normalization}: Constructing leader-partitioned Control Flow Graphs (CFG), solving dominance frontiers using Cytron's method, and converting linear TAC into semi-pruned SSA form.
+    \item \textbf{Dataflow Optimization Passes}: Performing algebraic property reduction, compile-time constant folding, commutative Global Value Numbering (GVN), and backward dead code elimination.
+    \item \textbf{Metadata Footprint Reduction}: Frequency-prioritized short symbol aliasing and hash-indexed literal constant pool deduplication.
+    \item \textbf{Dual-Tier Binary Compression}: Encoding instructions with variable-length LEB128 integer payloads followed by Canonical Huffman entropy serialization over a Columnar Structure-of-Arrays (SoA) layout.
 \end{enumerate}
 
-The remainder of this paper is structured as follows: Section~\ref{sec:architecture} describes the system architecture. Section~\ref{sec:cfg_ssa} details the mathematical foundation of CFG leader partitioning and SSA transformation. Section~\ref{sec:optimizer} discusses the multi-pass optimizer. Section~\ref{sec:compression} covers the physical bytecode emitter and entropy compression. Section~\ref{sec:results} delivers empirical benchmark results, and Section~\ref{sec:conclusion} concludes the paper.
+The remainder of this article is structured as follows: Section~\ref{sec:architecture} introduces the multi-tiered pipeline. Section~\ref{sec:cfg_ssa} details basic block partitioning, dominator computation, and SSA construction. Section~\ref{sec:optimizer} discusses the optimization passes. Section~\ref{sec:compression} formalizes the physical compression layers. Section~\ref{sec:results} presents benchmark performance, and Section~\ref{sec:conclusion} provides concluding observations.
 
 \section{System Architecture}
-\label{sec:architecture}
-The architecture of the compression framework follows a staged, unidirectional pipeline from high-level source text to a lossless `.cir` (Compressed Intermediate Representation) container. Fig.~\ref{fig:architecture} illustrates the structural flow.
+\label{sec:architecture} % chktex 24
+The compilation and compaction pipeline processes input text through sequential transformation tiers, culminating in a lossless \texttt{.cir} (Compressed Intermediate Representation) archive. Fig.~\ref{fig:architecture} presents the pipeline architecture.
 
 \begin{figure}[htbp]
 \centering
@@ -95,53 +119,52 @@ The architecture of the compression framework follows a staged, unidirectional p
 \begin{minipage}{0.92\linewidth}
 \centering
 \small
-\textbf{Source Code (C / C-Lite)} \\
+\textbf{Source Program (C / C-Lite)} \\
 $\Downarrow$ \\
-\textbf{Lexer \& Recursive-Descent Parser} $\to$ \textbf{AST} \\
+\textbf{Lexical Analysis \& Recursive-Descent Parsing} $\to$ \textbf{AST} \\
 $\Downarrow$ \\
-\textbf{Three-Address Code (TAC) Generator} \\
+\textbf{Three-Address Code (TAC) Quadruple Generator} \\
 $\Downarrow$ \\
-\textbf{Symbol Table Minification \& Constant Pool Interning} \\
+\textbf{Symbol Table Minification \& Constant Deduplication} \\
 $\Downarrow$ \\
-\textbf{Basic Block Partitioning \& Control Flow Graph (CFG)} \\
+\textbf{Basic Block Partitioner \& Control Flow Graph (CFG)} \\
 $\Downarrow$ \\
-\textbf{Dominator Tree \& Dominance Frontiers (Cytron's Algorithm)} \\
+\textbf{Dominator Tree \& Dominance Frontier Calculator} \\
 $\Downarrow$ \\
-\textbf{Semi-Pruned SSA Transformer ($\phi$-Insertion \& Renaming)} \\
+\textbf{Semi-Pruned SSA Transformer ($\phi$-Node Insertion)} \\
 $\Downarrow$ \\
 \textbf{Multi-Pass IR Optimizer (Folding, GVN, DCE, Pruning)} \\
 $\Downarrow$ \\
-\textbf{LEB128 Binary Bytecode Emitter} \\
+\textbf{LEB128 Compact Binary Bytecode Emitter} \\
 $\Downarrow$ \\
-\textbf{Canonical Huffman Entropy Compressor} \\
+\textbf{Canonical Huffman Entropy Bitstream Encoder} \\
 $\Downarrow$ \\
-\textbf{Lossless Compressed Bitstream Container (.cir)}
+\textbf{Serialized Compressed Bitstream Package (.cir)}
 \end{minipage}
 }
-\caption{End-to-end multi-tier pipeline of the IR Compression Studio.}
-\label{fig:architecture}
+\caption{Tiered end-to-end pipeline of the IR Compression Studio.}
+\label{fig:architecture} % chktex 24
 \end{figure}
 
-The source language dialect, termed C-Lite, provides classical imperative constructs: strong typing (`int`, `float`, `string`, `bool`), scoped compound statements, conditional branching (`if-else`), and iteration loops (`while`, `for`). The frontend supports standard C extensions including preprocessor directives (`#include`), function envelopes (`int main()`), and output formatting (`printf`).
+The frontend accepts imperative programs containing arithmetic expressions, compound control statements (\texttt{if-else}, \texttt{while}, \texttt{for}), nested scopes, and standard C extensions, including preprocessor statements (\texttt{\#include}), entry functions (\texttt{int main()}), and standard console output (\texttt{printf}). % chktex 36
 
 \section{Control Flow Analysis and SSA Transformation}
-\label{sec:cfg_ssa}
+\label{sec:cfg_ssa} % chktex 24
 
 \subsection{Basic Block Partitioning}
-A basic block is defined as a maximal sequence of instructions $B = \langle I_1, I_2, \dots, I_k \rangle$ where control enters strictly at $I_1$ and terminates strictly at $I_k$ without intermediate branching. Leader instructions are determined via three canonical invariants:
+We delineate each basic block as an uninterrupted straight-line instruction sequence where execution enters solely through the first operation and departs exclusively at the terminating branch. The partitioner scans linear TAC to mark leader instructions under three invariants:
 \begin{enumerate}
-    \item Instruction $I_1$ of the compilation unit is a leader.
-    \item Any instruction $I_j$ that serves as the explicit target of a conditional or unconditional branch (`LABEL`) is a leader.
-    \item Any instruction $I_{j+1}$ immediately succeeding a jump (`goto`, `if_false`, `return`) is a leader.
+    \item The entry instruction of the program unit is an initial leader.
+    \item Any statement designated as the destination of a branch (\texttt{LABEL}) is a leader.
+    \item Any statement immediately following a conditional, unconditional, or return instruction (\texttt{goto}, \texttt{if\_false}, \texttt{return}) is a leader.
 \end{enumerate}
 
-Directed edges $(B_i, B_j)$ in the CFG represent feasible execution trajectories, comprising unconditional transitions, conditional True/False bifurcations, and sequential fallthrough paths.
+Directed edges $(B_i, B_j)$ in the CFG capture viable control transitions: unconditional jumps, bifurcated True/False branch edges, and sequential fallthrough trajectories.
 
-\subsection{Dominator Trees and Dominance Frontiers}
-In a CFG $G = (V, E, r)$ with unique entry node $r$:
-A node $d \in V$ \textit{dominates} node $n \in V$ ($d \text{ dom } n$) if every directed path from $r$ to $n$ contains $d$. Node $d$ \textit{strictly dominates} $n$ ($d \text{ sdom } n$) if $d \text{ dom } n$ and $d \neq n$. The \textit{Immediate Dominator} $IDom(n)$ is the unique strict dominator that does not strictly dominate any other strict dominator of $n$.
+\subsection{Dominance Analysis}
+Let $G = (V, E, r)$ represent a CFG rooted at entry vertex $r$. Under directed control flow, a vertex $d$ achieves dominance over $n$ ($d \text{ dom } n$) if traversing from $r$ to $n$ necessitates passage through $d$. Vertex $d$ strictly dominates $n$ ($d \text{ sdom } n$) when $d \text{ dom } n$ and $d \neq n$. The Immediate Dominator $IDom(n)$ is the unique strict dominator that does not strictly dominate any intermediate dominator of $n$.
 
-The dominance relation is calculated via the fixed-point dataflow system:
+Dominance sets are resolved iteratively across the fixed-point system:
 \begin{equation}
 \text{Dom}(r) = \{r\}
 \end{equation}
@@ -149,92 +172,100 @@ The dominance relation is calculated via the fixed-point dataflow system:
 \text{Dom}(n) = \{n\} \cup \left( \bigcap_{p \in \text{Pred}(n)} \text{Dom}(p) \right), \quad \forall n \neq r
 \end{equation}
 
-The \textit{Dominance Frontier} $DF(x)$ encompasses the set of nodes $y$ where $x$ dominates a direct predecessor of $y$, but does not strictly dominate $y$:
+The Dominance Frontier $DF(x)$ isolates boundary vertices $y$ where $x$ exercises dominance over at least one incoming predecessor of $y$ without exerting strict dominance over $y$ itself:
 \begin{equation}
-DF(x) = \{ y \in V \mid \exists p \in \text{Pred}(y) \text{ s.t. } x \text{ dom } p \land x \text{ not sdom } y \}
+\begin{aligned}
+DF(x) ={}& \{ y \in V \mid \exists p \in \text{Pred}(y) \text{ s.t.} \\
+& x \text{ dom } p \land x \text{ not sdom } y \}
+\end{aligned}
 \end{equation}
 
-\subsection{Cytron's SSA Transformation}
-To enforce the Static Single Assignment property—wherein each variable possesses precisely one static point of definition—the engine computes the \textit{Iterated Dominance Frontier} ($IDF$):
+\subsection{Cytron-Style SSA Transformation}
+To establish strict Static Single Assignment invariants—guaranteeing invariant singular definitions per symbolic variable—the engine computes Iterated Dominance Frontiers ($IDF$):
 \begin{equation}
 IDF(S) = \bigcup_{k=0}^{\infty} DF^k(S), \quad \text{where } S = Defs(v)
 \end{equation}
-For every variable $v$, uninitialized $\phi$-functions are placed at the entry of each basic block belonging to $IDF(Defs(v))$.
+For variable $v$, uninitialized $\phi$-functions are placed at block entry points belonging to $IDF(Defs(v))$.
 
-To curtail unnecessary $\phi$-placement overhead, we deploy a \textit{semi-pruned} SSA model: variables whose live-ranges never cross basic block boundaries are excluded from $\phi$-placement, reducing SSA node allocation by up to 40\% compared to maximal SSA.
+To curtail phi-node bloat, we enforce a semi-pruned model: temporaries localized entirely within individual basic blocks are exempted from phi placement, preventing excessive phi allocations.
 
-Variable versioning is executed via a depth-first search over the Dominator Tree, utilizing version stacks $S[v]$ and monotonic counters $C[v]$ to rename operand uses with current dominator definitions and popping scope versions upon subtree departure.
+Symbol renaming is performed via depth-first traversal of the Dominator Tree. Maintaining per-variable version stacks $S[v]$ and counters $C[v]$, definitions generate fresh indices while operand uses resolve to $\text{top}(S[v])$, popping versions upon exiting the dominated subtree.
 
 \section{Multi-Pass IR Optimization Suite}
-\label{sec:optimizer}
+\label{sec:optimizer} % chktex 24
 
-Optimizations are executed across the SSA substrate in prioritized iterative passes:
+Optimizations iterate across the SSA representation in structured passes:
 
 \subsection{Sparse Constant Folding and Propagation}
-Expressions operating over compile-time literal values are folded into direct assignments:
+Arithmetic and relational operations with static literal arguments are resolved during compilation:
 \begin{equation}
 v_1 \odot v_2 \longrightarrow c_3, \quad \text{for } \odot \in \{+, -, \times, /, \%, <, \le, ==\}
 \end{equation}
-Algebraic identities are simplified dynamically:
+Canonical algebraic identities undergo compile-time reduction:
 \begin{align*}
 x + 0 &\to x, \quad &x \times 1 &\to x, \\
 x \times 0 &\to 0, \quad &x - 0 &\to x
 \end{align*}
-Conditional branches with statically determined boolean discriminants (`if_false 0` or `if_false 1`) are resolved into unconditional jumps or eliminated entirely.
+Conditional branches with statically known predicates (\texttt{if\_false 0} or \texttt{if\_false 1}) are replaced with direct jumps or eliminated entirely.
 
 \subsection{Global Value Numbering (GVN)}
-GVN identifies congruent computational values across dominated CFG regions. The value table maps canonical tuples:
+Global Value Numbering detects computationally equivalent subexpressions residing within dominated subgraphs. The expression table maps canonical operations:
 \begin{equation}
 \mathcal{T}: (\text{Opcode}, \text{Arg}_1, \text{Arg}_2) \longrightarrow \text{ValueNumber}
 \end{equation}
-Commutative operators ($\{+, \times, ==, !=\}$) are canonicalized by lexicographically ordering operands ($\text{Arg}_1 \le \text{Arg}_2$). Duplicate expressions within dominated subtrees are substituted with assignments to the representative value number, eliminating common subexpressions.
+Commutative operators ($\{+, \times, ==, !=\}$) are canonicalized by ordering arguments lexicographically ($\text{Arg}_1 \le \text{Arg}_2$), replacing redundant operations with references to the canonical value.
 
 \subsection{Dead Code Elimination (DCE) and CFG Compaction}
-A backwards mark-sweep pass identifies active variable definitions. Instructions lacking outward side effects (i.e., non-`print`, non-`return`, and non-branching instructions) whose def-use chain count equals zero are purged. Unreachable basic blocks disconnected by pruned conditional branches are stripped, with fallthrough edges stitched into seamless linear sequences.
+An iterative backward liveness traversal isolates instructions with active downstream consumers. Unused definitions lacking outward side effects (excluding console I/O, control jumps, and returns) are deleted. Unreachable basic blocks pruned by resolved conditionals are removed, stitching surviving blocks into a compacted CFG.
 
 \section{Physical Bitstream Compression}
-\label{sec:compression}
+\label{sec:compression} % chktex 24
 
-\subsection{Symbol Minification and Constant Interning}
-Identifier strings represent non-trivial metadata overhead in serial IR representations. The symbol table calculates reference frequencies $\mathcal{F}(v)$ and performs greedy Huffman-like lexical shortening:
+\subsection{Symbol Table Minification and Literal Interning}
+Verbose lexical identifiers account for disproportionate metadata overhead across serialized symbol tables. Reference frequencies $\mathcal{F}(v)$ are calculated to assign minimal-length aliases:
 \begin{equation}
 v_i \longrightarrow \text{Alias}_i \in \{\text{\_a}, \text{\_b}, \dots, \text{\_z}, \text{\_aa}, \dots\}
 \end{equation}
-The literal constant pool deduplicates integer, floating-point, and string literals via hash-indexed interning, assigning unique pool offsets (`CP#0`, `CP#1`) to eliminate duplicated literal instances.
+The centralized constant pool interns numeric and string literals, substituting repetitive constants with compact indexed references (\texttt{CP\#0}, \texttt{CP\#1}).
 
 \subsection{LEB128 Binary Bytecode Serialization}
-Each optimized IR quadruple is packed into a compact binary instruction container:
+Optimized quadruples are serialized into a packed binary container:
 \begin{equation}
-\text{Bytecode} = \langle \text{Opcode}_{8\text{-bit}} \rangle \parallel \langle \text{Arg}_1 \rangle_{\text{LEB128}} \parallel \langle \text{Arg}_2 \rangle_{\text{LEB128}} \parallel \langle \text{Res} \rangle_{\text{LEB128}}
+\begin{aligned}
+\text{Bytecode} ={}& \langle \text{Opcode}_{8\text{-bit}} \rangle \parallel \\
+& \langle \text{Arg}_1 \rangle_{\text{LEB128}} \parallel \\
+& \langle \text{Arg}_2 \rangle_{\text{LEB128}} \parallel \\
+& \langle \text{Res} \rangle_{\text{LEB128}}
+\end{aligned}
 \end{equation}
-LEB128 encodes arbitrary-precision integers by slicing them into 7-bit payloads, reserving the 8th bit as a continuation indicator. Values in range $[0, 127]$ occupy a single byte, reducing 32-bit and 64-bit operand payloads by 75\%.
+LEB128 partitions integer magnitudes into 7-bit value chunks, dedicating the most significant bit to signal subsequent octets. Values in range $[0, 127]$ occupy a single byte, reducing 32-bit and 64-bit operand payloads by 75\%.
 
 \subsection{Canonical Huffman Entropy Coding}
-The serialized bytecode buffer is processed by an entropy encoder constructing a minimum-redundancy binary tree. Symbols with high frequency (e.g., common opcodes and branch targets) receive minimal prefix codes. 
+The serialized bytecode stream is subsequently fed to an entropy encoder that generates an optimal prefix-free binary coding tree. Frequently occurring opcodes and operands receive shorter bit codes.
 
-To improve compression efficiency, the architecture optionally partitions the IR into a Columnar Structure-of-Arrays (SoA) layout:
+The pipeline optionally arranges IR instructions into a Columnar Structure-of-Arrays (SoA) layout:
 \begin{itemize}
-    \item \textbf{Opcode Stream}: High local run-length homogeneity.
-    \item \textbf{Operand Delta Stream}: Clustered around small positive offsets.
-    \item \textbf{Immediate Pool Stream}: Front-coded and interned constants.
+    \item \textbf{Opcode Stream}: Exploits run-length predictability.
+    \item \textbf{Operand Delta Stream}: Clustered around small relative offsets.
+    \item \textbf{Immediate Pool Stream}: Interned constant literals.
 \end{itemize}
-Separating distinct entropy sources maximizes compression ratios and allows localized decoding.
+Segregating distinct entropy profiles enhances overall compression density while supporting modular decoding.
 
 \section{Experimental Evaluation}
-\label{sec:results}
+\label{sec:results} % chktex 24
 
-The framework was evaluated across five academic benchmark programs characterizing distinct compiler stress patterns:
+The framework was evaluated on five diverse benchmark workloads:
 \begin{itemize}
-    \item \textbf{Sample 1 (Arithmetic)}: Deep constant folding and string literal deduplication.
-    \item \textbf{Sample 2 (Loops \& Branches)}: Diamond conditional branches, loop back-edges, and SSA $\phi$-node resolution.
-    \item \textbf{Sample 3 (GVN / CSE)}: Symmetrical subexpression redundancies across dominated basic blocks.
-    \item \textbf{Sample 4 (Dead Code)}: Extraneous computations within statically unviable branch paths.
-    \item \textbf{Sample 5 (Fibonacci)}: Iterative accumulator with high symbol utilization.
+    \item \textbf{Sample 1 (Arithmetic)}: Constant folding and string literal interning.
+    \item \textbf{Sample 2 (Loops \& Conditionals)}: Branching CFG, loop back-edges, and $\phi$-node resolution.
+    \item \textbf{Sample 3 (GVN / CSE)}: Symmetrical subexpression redundancies across basic blocks.
+    \item \textbf{Sample 4 (Dead Code)}: Extraneous instructions and dormant conditional branches.
+    \item \textbf{Sample 5 (Fibonacci)}: Iterative accumulator with heavy identifier usage.
 \end{itemize}
 
 \begin{table*}[t]
 \caption{Comprehensive Optimization and Compression Metrics Across Benchmark Suite}
-\label{tab:benchmarks}
+\label{tab:benchmarks} % chktex 24
 \centering
 \begin{tabularx}{\textwidth}{l X c c c c c c c}
 \toprule
@@ -250,43 +281,41 @@ Sample 5 & Iterative Accumulator Loop & 27 & 22 & 18.5\% & 332 B & 104 B & 208 B
 \end{table*}
 
 \subsection{Instruction Count Reduction}
-As summarized in Table~\ref{tab:benchmarks}, programs containing compile-time evaluable expressions and dormant branches (Samples 1, 3, and 4) exhibited between \textbf{78.1\% and 89.3\% instruction reduction}. In Sample 4, entire control subgraphs containing dead basic blocks were pruned, proving the efficacy of combining sparse propagation with reachability pruning.
+As documented in Table~\ref{tab:benchmarks}, programs exhibiting compile-time computable expressions and dead branch paths (Samples 1, 3, and 4) achieved between \textbf{78.1\% and 89.3\% instruction reduction}. In Sample 4, unviable branch execution paths were eliminated, pruning entire dead subgraphs from the CFG.
 
 \subsection{Physical Bitstream Density}
-Serializing textual IR into LEB128 binary bytecode achieved an average \textbf{74.5\% footprint reduction}. When passed through Canonical Huffman entropy coding, single-stream representations achieved an overall byte reduction between \textbf{37.4\% and 72.8\%}. The Columnar SoA path elided 66.7\% of sequential jump targets via reverse post-order (RPO) scheduling, mitigating header overhead even on diminutive payloads.
+Converting textual IR into LEB128 binary bytecode achieved an average \textbf{74.5\% footprint reduction}. Single-stream Canonical Huffman encoding yielded overall compression between \textbf{37.4\% and 72.8\%}. The Columnar SoA configuration elided 66.7\% of sequential jump targets via reverse post-order (RPO) block scheduling, eliminating overhead on compact payloads.
 
-\subsection{Round-Trip Verification}
-To guarantee soundness, every compressed stream is decompressed and verified via an automated regression harness comprising 54 unit and headless browser integration tests, demonstrating 100\% semantic and functional fidelity.
+\subsection{Semantic Integrity Verification}
+All compressed bitstreams were tested via automated test suites encompassing 54 unit and headless browser integration tests, demonstrating 100\% lossless round-trip semantic reconstruction.
 
 \section{Conclusion and Future Scope}
-\label{sec:conclusion}
-This paper presented \textit{IR Compression Studio}, an integrated system demonstrating that compiler-level dataflow optimization and information-theoretic physical compression operate synergistically. By transforming Three-Address Code into semi-pruned SSA form, executing multi-pass dead code elimination and constant propagation, and coupling symbol minification with LEB128 and Canonical Huffman serialization, the architecture achieved up to 89.3\% instruction reduction and 75.0\% bitstream compaction.
+\label{sec:conclusion} % chktex 24
+This study presented \textit{IR Compression Studio}, demonstrating the synergistic impact of combining semantic graph optimization with physical entropy compression. Transforming Three-Address Code into semi-pruned SSA, executing dead code elimination and constant propagation, and serializing via LEB128 and Canonical Huffman coding achieved up to 89.3\% instruction reduction and 75.0\% bitstream compaction.
 
-Future work will expand the pipeline to support register allocation via Chaitin-Briggs graph coloring, Loop Invariant Code Motion (LICM), and direct translation to compact WebAssembly binaries.
+Future directions will incorporate graph-coloring register allocation, Loop Invariant Code Motion (LICM), and direct translation to WebAssembly binaries.
 
 \begin{thebibliography}{00}
 \bibitem{aho2006compilers}
-A.~V. Aho, M.~S. Lam, R.~Sethi, and J.~D. Ullman, \emph{Compilers: Principles, Techniques, and Tools (Dragon Book)}, 2nd~ed.\hskip 1em plus 0.5em minus 0.4em\relax Boston, MA, USA: Addison-Wesley, 2006.
+A.~V. Aho, M.~S. Lam, R.~Sethi, and J.~D. Ullman, \emph{Compilers: Principles, Techniques, and Tools (Dragon Book)}, 2nd~ed.\hskip 1em plus 0.5em minus 0.4em\relax Boston, MA, USA: Addison-Wesley, 2006. % chktex 13
 
 \bibitem{cytron1991efficiently}
-R.~Cytron, J.~Ferrante, B.~K. Rosen, M.~N.~Wegman, and F.~K.~Zadeck, ``Efficiently computing static single assignment form and the control dependence graph,'' \emph{ACM Trans. Program. Lang. Syst. (TOPLAS)}, vol.~13, no.~4, pp. 451--490, Oct. 1991.
+R.~Cytron, J.~Ferrante, B.~K. Rosen, M.~N.~Wegman, and F.~K.~Zadeck, \textquotedblleft{}Efficiently computing static single assignment form and the control dependence graph,\textquotedblright{} \emph{ACM Trans. Program. Lang. Syst. (TOPLAS)}, vol.~13, no.~4, pp. 451--490, Oct. 1991.
 
 \bibitem{muchnick1997advanced}
-S.~S. Muchnick, \emph{Advanced Compiler Design and Implementation}.\hskip 1em plus 0.5em minus 0.4em\relax San Francisco, CA, USA: Morgan Kaufmann, 1997.
+S.~S. Muchnick, \emph{Advanced Compiler Design and Implementation}.\hskip 1em plus 0.5em minus 0.4em\relax San Francisco, CA, USA: Morgan Kaufmann, 1997. % chktex 13
 
 \bibitem{cooper2001simple}
-K.~D. Cooper, T.~J. Harvey, and K.~Kennedy, ``A simple, fast dominance algorithm,'' \emph{Softw. Pract. Exp.}, vol.~31, no.~1, pp. 1--10, 2001.
+K.~D. Cooper, T.~J. Harvey, and K.~Kennedy, \textquotedblleft{}A simple, fast dominance algorithm,\textquotedblright{} \emph{Softw. Pract. Exp.}, vol.~31, no.~1, pp. 1--10, 2001.
 
 \bibitem{huffman1952method}
-D.~A. Huffman, ``A method for the construction of minimum-redundancy codes,'' \emph{Proc. IRE}, vol.~40, no.~9, pp. 1098--1101, Sep. 1952.
+D.~A. Huffman, \textquotedblleft{}A method for the construction of minimum-redundancy codes,\textquotedblright{} \emph{Proc. IRE}, vol.~40, no.~9, pp. 1098--1101, Sep. 1952.
 
 \bibitem{lattner2004llvm}
-C.~Lattner and V.~Adve, ``LLVM: A compilation framework for lifelong program analysis \& transformation,'' in \emph{Proc. Int. Symp. Code Gener. Optim. (CGO)}, 2004, pp. 75--86.
+C.~Lattner and V.~Adve, \textquotedblleft{}LLVM: A compilation framework for lifelong program analysis \& transformation,\textquotedblright{} in \emph{Proc. Int. Symp. Code Gener. Optim. (CGO)}, 2004, pp. 75--86. % chktex 13
 
 \bibitem{alstrup1999dominators}
-S.~Alstrup, P.~W. Lauridsen, M.~Thorup, and J.~Zwick, ``Dominators in linear time,'' \emph{SIAM J. Comput.}, vol.~28, no.~6, pp. 2117--2132, 1999.
+S.~Alstrup, P.~W. Lauridsen, M.~Thorup, and J.~Zwick, \textquotedblleft{}Dominators in linear time,\textquotedblright{} \emph{SIAM J. Comput.}, vol.~28, no.~6, pp. 2117--2132, 1999.
 \end{thebibliography}
 
-\EOD
-
-\end{document}
+\ifieeeaccess\EOD\fi\end{document}
