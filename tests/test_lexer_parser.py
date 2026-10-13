@@ -74,3 +74,27 @@ def test_syntax_error():
     tokens = Lexer(code).tokenize()
     with pytest.raises(ParserError):
         Parser(tokens).parse()
+
+
+def test_c_preprocessor_and_main_function():
+    code = """
+    #include <stdio.h>
+    #define MAX 100
+
+    int main() {
+        int total = 0;
+        int i = 0;
+        while (i < 5) {
+            total += i;
+            i += 1;
+        }
+        printf("Total is: %d", total);
+        return 0;
+    }
+    """
+    tokens = Lexer(code).tokenize()
+    ast = Parser(tokens).parse()
+    assert len(ast.statements) == 1
+    # Check that statements inside main are parsed
+    block = ast.statements[0]
+    assert len(block.statements) == 5

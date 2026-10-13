@@ -71,9 +71,15 @@ KEYWORDS = {
     "while": TokenType.WHILE,
     "for": TokenType.FOR,
     "print": TokenType.PRINT,
+    "printf": TokenType.PRINT,
     "return": TokenType.RETURN,
     "true": TokenType.BOOL_LIT,
     "false": TokenType.BOOL_LIT,
+    "void": TokenType.INT,
+    "double": TokenType.FLOAT,
+    "char": TokenType.INT,
+    "long": TokenType.INT,
+    "short": TokenType.INT,
 }
 
 
@@ -138,6 +144,10 @@ class Lexer:
             ch = self.current_char()
             if ch in (' ', '\t', '\r', '\n'):
                 self.advance()
+            elif ch == '#':
+                # Preprocessor directive (e.g., #include <stdio.h>, #define ...)
+                while self.current_char() is not None and self.current_char() != '\n':
+                    self.advance()
             elif ch == '/' and self.peek_char() == '/':
                 # Single line comment
                 while self.current_char() is not None and self.current_char() != '\n':

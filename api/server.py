@@ -49,7 +49,7 @@ def health_check():
 def get_samples():
     """Returns pre-loaded benchmark programs for demonstration."""
     benchmarks_dir = os.path.join(os.path.dirname(__file__), "..", "benchmarks")
-    sample_files = glob.glob(os.path.join(benchmarks_dir, "*.lang"))
+    sample_files = glob.glob(os.path.join(benchmarks_dir, "*.lang")) + glob.glob(os.path.join(benchmarks_dir, "*.c"))
     samples = []
 
     descriptions = {
@@ -58,6 +58,8 @@ def get_samples():
         "sample3_redundant_gvn.lang": "Global Value Numbering (GVN) & Common Subexpression Elimination",
         "sample4_dead_code.lang": "Dead Code Elimination (DCE) & Unreachable Branch Pruning",
         "sample5_matrix_fibonacci.lang": "Iterative Fibonacci Algorithm & End-to-End Compression",
+        "sample6_standard_cfg_demo.lang": "CFG Visualizer Showcase: Diamond Branch & Loop Cycle (C-Lite)",
+        "sample7_standard_c_program.c": "Standard C Program: #include, main(), Branches & printf",
     }
 
     for fpath in sorted(sample_files):

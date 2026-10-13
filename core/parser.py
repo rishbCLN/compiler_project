@@ -85,10 +85,26 @@ class Parser:
         else:
             raise ParserError(f"Unexpected statement beginning with token '{tok.value}'", tok)
 
-    def parse_var_decl(self) -> VarDeclNode:
+    def parse_var_decl(self) -> ASTNode:
         type_tok = self.current_token()
         self.pos += 1
         name_tok = self.expect(TokenType.IDENTIFIER, "Expected identifier after type name")
+
+        # Function definition or prototype: e.g. int main() { ... } or void main(void) { ... }
+        if self.match(TokenType.LPAREN):
+            paren_depth = 1
+            while self.pos < len(self.tokens) and paren_depth > 0:
+                tok = self.current_token()
+                if tok.type == TokenType.LPAREN:
+                    paren_depth += 1
+                elif tok.type == TokenType.RPAREN:
+                    paren_depth -= 1
+                self.pos += 1
+            if self.match(TokenType.SEMICOLON):
+                # Function prototype
+                return BlockNode(line=type_tok.line, col=type_tok.col, statements=[])
+            # Function body block
+            return self.parse_block()
 
         initializer: Optional[ASTNode] = None
         if self.match(TokenType.ASSIGN):

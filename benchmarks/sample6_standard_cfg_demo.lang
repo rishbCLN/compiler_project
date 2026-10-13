@@ -1,0 +1,20 @@
+// Standard CFG Showcase: Diamond Branch + While Loop + SSA Phi Nodes
+// Designed for live presentation: produces a balanced 7-block Control Flow Graph.
+
+int count = 0;
+int max = 10;
+int step = 1;
+
+// 1. Conditional Branch (Generates Diamond CFG: Split -> Then / Else -> Merge)
+if (count < max) {
+    step = 2;
+} else {
+    step = 1;
+}
+
+// 2. While Loop (Generates Header -> Body -> Back-edge -> Exit)
+while (count < max) {
+    count = count + step;
+}
+
+print(count, step);
