@@ -23,6 +23,33 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastCompileResult = null;
     let samples = [];
 
+    // ---------------- Toast Notifications ----------------
+    // Non-blocking replacement for alert(): keeps the UI responsive and is
+    // observable by the headless test-suite (no modal dialog to dismiss).
+    const toastContainer = document.getElementById('toast-container');
+
+    function showToast(message, type = 'info', title = null) {
+        if (!toastContainer) {
+            console.warn(`[toast:${type}] ${message}`);
+            return;
+        }
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+        const heading = title || (type === 'error' ? 'Error' : type === 'success' ? 'Success' : 'Notice');
+        toast.innerHTML = `<span class="toast-title"></span><span class="toast-body"></span>`;
+        toast.querySelector('.toast-title').textContent = heading;
+        toast.querySelector('.toast-body').textContent = message;
+        toastContainer.appendChild(toast);
+        // Force reflow so the entrance transition plays.
+        requestAnimationFrame(() => toast.classList.add('show'));
+        const ttl = type === 'error' ? 7000 : 4000;
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 250);
+        }, ttl);
+    }
+
     // ---------------- Line Numbers & Editor Sync ----------------
 
     function updateLineNumbers() {
@@ -47,32 +74,96 @@ document.addEventListener('DOMContentLoaded', () => {
         cursorPosElem.textContent = `Ln ${line}, Col ${col}`;
     }
 
-    // ---------------- Tab Switching ----------------
+    // ---------------- Tab Switching (ARIA tab pattern + keyboard nav) ----------------
 
-    tabButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            tabButtons.forEach(b => b.classList.remove('active'));
-            tabPanes.forEach(p => p.classList.remove('active'));
+    const tabList = document.querySelector('.tabs-nav');
+    if (tabList) {
+        tabList.setAttribute('role', 'tablist');
+        tabList.setAttribute('aria-label', 'Compiler inspector views');
+    }
 
-            btn.classList.add('active');
-            const targetId = btn.getAttribute('data-tab');
-            const targetPane = document.getElementById(targetId);
-            if (targetPane) {
-                targetPane.classList.add('active');
+    // Wire up roles, relationships, and roving tabindex so the tab bar is a
+    // WCAG-compliant tablist operable entirely from the keyboard.
+    tabButtons.forEach((btn, i) => {
+        const targetId = btn.getAttribute('data-tab');
+        const pane = document.getElementById(targetId);
+        const tabId = `tab-${targetId}`;
+        btn.id = tabId;
+        btn.setAttribute('role', 'tab');
+        btn.setAttribute('aria-controls', targetId);
+        const isActive = btn.classList.contains('active');
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        btn.setAttribute('tabindex', isActive ? '0' : '-1');
+        if (pane) {
+            pane.setAttribute('role', 'tabpanel');
+            pane.setAttribute('aria-labelledby', tabId);
+            pane.setAttribute('tabindex', '0');
+            if (!isActive) pane.setAttribute('hidden', '');
+        }
+    });
+
+    function activateTab(btn, { focus = true } = {}) {
+        tabButtons.forEach(b => {
+            b.classList.remove('active');
+            b.setAttribute('aria-selected', 'false');
+            b.setAttribute('tabindex', '-1');
+        });
+        tabPanes.forEach(p => {
+            p.classList.remove('active');
+            p.setAttribute('hidden', '');
+        });
+
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        btn.setAttribute('tabindex', '0');
+        if (focus) btn.focus();
+
+        const targetId = btn.getAttribute('data-tab');
+        const targetPane = document.getElementById(targetId);
+        if (targetPane) {
+            targetPane.classList.add('active');
+            targetPane.removeAttribute('hidden');
+        }
+
+        // Trigger canvas relayout when switching to graph tabs
+        if (targetId === 'cfg-tab') {
+            setTimeout(() => getCfgVisualizer().fit(), 100);
+        } else if (targetId === 'ssa-tab') {
+            setTimeout(() => getDomTreeVisualizer().fit(), 100);
+        }
+    }
+
+    tabButtons.forEach((btn, index) => {
+        btn.addEventListener('click', () => activateTab(btn, { focus: false }));
+
+        btn.addEventListener('keydown', (e) => {
+            const last = tabButtons.length - 1;
+            let next = null;
+            switch (e.key) {
+                case 'ArrowRight':
+                case 'ArrowDown':
+                    next = index === last ? 0 : index + 1;
+                    break;
+                case 'ArrowLeft':
+                case 'ArrowUp':
+                    next = index === 0 ? last : index - 1;
+                    break;
+                case 'Home':
+                    next = 0;
+                    break;
+                case 'End':
+                    next = last;
+                    break;
+                case 'Enter':
+                case ' ':
+                    e.preventDefault();
+                    activateTab(btn);
+                    return;
+                default:
+                    return;
             }
-
-            // Trigger canvas relayout when switching to graph tabs
-            if (targetId === 'cfg-tab') {
-                setTimeout(() => {
-                    const viz = getCfgVisualizer();
-                    viz.fit();
-                }, 100);
-            } else if (targetId === 'ssa-tab') {
-                setTimeout(() => {
-                    const domViz = getDomTreeVisualizer();
-                    domViz.fit();
-                }, 100);
-            }
+            e.preventDefault();
+            activateTab(tabButtons[next]);
         });
     });
 
@@ -134,7 +225,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!data.success) {
                 compilerStatus.textContent = `Error: ${data.error_type}`;
                 compilerStatus.className = 'badge error';
-                alert(`Compiler Error at L${data.line || 1}:C${data.col || 1}\n\n${data.message}`);
+                showToast(
+                    `L${data.line || 1}:C${data.col || 1} — ${data.message}`,
+                    'error',
+                    `Compiler Error (${data.error_type || 'Error'})`
+                );
                 return;
             }
 
@@ -148,6 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Compilation failed:', err);
             compilerStatus.textContent = 'API Error';
             compilerStatus.className = 'badge error';
+            showToast('Could not reach the compiler API. Is the server running?', 'error', 'API Error');
         }
     }
 
@@ -204,10 +300,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (vBadge) {
                 vBadge.textContent = adv.verification_status;
             }
+            // Final Structure-of-Arrays bitstream (the full advanced architecture
+            // figure; kept distinct from tier4's single-stream Huffman number).
+            const advFinalBytes = document.getElementById('adv-final-bitstream');
+            const advFinalPct = document.getElementById('adv-final-percent');
+            if (advFinalBytes && typeof adv.final_advanced_bitstream_bytes === 'number') {
+                advFinalBytes.textContent = `${adv.final_advanced_bitstream_bytes} B`;
+            }
+            if (advFinalPct && typeof adv.final_advanced_compression_percent === 'number') {
+                advFinalPct.textContent = `${adv.final_advanced_compression_percent}% vs raw IR`;
+            }
         }
 
-        // Chart
-        renderCompressionChart(comp);
+        // Chart (pass advanced SoA bitstream for the optional 5th bar)
+        renderCompressionChart(comp, data.advanced_compression);
 
         // 2. CFG Graph
         updateCfgGraph();
@@ -325,10 +431,39 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateConstantPoolTable(cpData) {
         const tbody = document.querySelector('#constant-pool-view tbody');
         const badge = document.getElementById('const-count-badge');
+        const summary = document.getElementById('const-pool-summary');
         if (!tbody || !cpData) return;
 
         const entries = cpData.entries || [];
         badge.textContent = `${entries.length} Unique Literals`;
+
+        // Honest net-savings accounting: the pool adds index/overhead bytes, which
+        // can exceed the dedup savings on tiny inputs. Surface that rather than
+        // only showing the optimistic gross figure.
+        if (summary) {
+            const stats = cpData.stats || {};
+            const net = stats.net_bytes_saved;
+            const netPct = stats.net_compression_percentage;
+            const overhead = stats.pool_overhead_bytes;
+            if (typeof net === 'number') {
+                if (stats.overhead_exceeds_savings) {
+                    summary.className = 'pool-summary pool-summary-warn';
+                    summary.innerHTML =
+                        `<span class="pool-summary-badge warn">Net overhead</span>` +
+                        `Pool overhead (${overhead ?? '?'} B) exceeds dedup savings on this ` +
+                        `small input: net ${net} B (${netPct}%). Interning pays off as ` +
+                        `literals repeat across larger programs.`;
+                } else {
+                    summary.className = 'pool-summary pool-summary-ok';
+                    summary.innerHTML =
+                        `<span class="pool-summary-badge ok">Net saved</span>` +
+                        `Net ${net} B saved (${netPct}%) after ${overhead ?? 0} B of pool overhead.`;
+                }
+            } else {
+                summary.className = 'pool-summary';
+                summary.textContent = '';
+            }
+        }
 
         if (entries.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center">No constants pooled.</td></tr>';
@@ -387,7 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnExport.addEventListener('click', async () => {
         const code = sourceCodeElem.value.trim();
         if (!code) {
-            alert('Please enter code before exporting.');
+            showToast('Please enter code before exporting.', 'info');
             return;
         }
 
@@ -411,7 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.URL.revokeObjectURL(url);
         } catch (err) {
             console.error(err);
-            alert('Failed to export binary IR file.');
+            showToast('Failed to export binary IR file.', 'error');
         }
     });
 

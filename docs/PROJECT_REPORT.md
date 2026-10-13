@@ -12,7 +12,7 @@ In modern compiler infrastructure, Intermediate Representation (IR) serves as th
 
 This project presents **IR Compression Studio**, an end-to-end compiler optimization and physical bitstream compression framework. The system processes a C-family imperative language (`C-Lite`) through lexical and syntax analysis into a linear Three-Address Code (TAC). It constructs a Control Flow Graph (CFG) using basic block leader partitioning, executes dominance analysis (Dominator Trees and Dominance Frontiers via Cytron's algorithm), and transforms linear code into **Static Single Assignment (SSA)** form with semi-pruned $\phi$-function insertion. 
 
-On top of the SSA substrate, our multi-pass optimizer executes **Sparse Constant Folding & Propagation**, **Global Value Numbering (GVN)**, **Dead Code Elimination (DCE)**, and **CFG Block Compaction**. Furthermore, the framework integrates two foundational memory-reduction layers: **Scoped Symbol Table Minification** (frequency-based identifier shortening) and **Constant Pool Deduplication** (literal interning). Finally, the optimized IR is serialized into a compact binary bytecode using **LEB128 variable-length integer encoding** and compressed into a lossless bitstream via **Canonical Huffman entropy coding**. Experimental benchmarks demonstrate an average **35% to 82% reduction in instruction count** and a **50% to 85% reduction in physical byte-level IR footprint**, accompanied by a real-time web visualizer.
+On top of the SSA substrate, our multi-pass optimizer executes **Sparse Constant Folding & Propagation**, **Global Value Numbering (GVN)**, **Dead Code Elimination (DCE)**, and **CFG Block Compaction**. Furthermore, the framework integrates two foundational memory-reduction layers: **Scoped Symbol Table Minification** (frequency-based identifier shortening) and **Constant Pool Deduplication** (literal interning). Finally, the optimized IR is serialized into a compact binary bytecode using **LEB128 variable-length integer encoding** and compressed into a lossless bitstream via **Canonical Huffman entropy coding**. Experimental benchmarks demonstrate an average **18% to 89% reduction in instruction count** and up to a **~75% reduction in physical byte-level IR footprint** (via the Columnar SoA entropy path), accompanied by a real-time web visualizer.
 
 ---
 
@@ -165,15 +165,15 @@ We evaluated the compression pipeline across 5 standard benchmark programs:
 
 | Benchmark Program | Description | Raw TAC Instrs | Optimized SSA Instrs | Instruction Reduction | Raw IR Bytes | Bytecode Bytes | Huffman Bitstream | Total Compression Ratio |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Sample 1** | Arithmetic & Constant Folding | 33 | 6 | **81.8%** | 499 B | 87 B | 232 B | **53.5%** |
-| **Sample 2** | CFG Branches & SSA Phi Nodes | 32 | 21 | **34.4%** | 415 B | 105 B | 203 B | **51.1%** |
-| **Sample 3** | Redundant GVN Expressions | 31 | 18 | **41.9%** | 396 B | 94 B | 192 B | **51.5%** |
-| **Sample 4** | Dead Code & Dead Branch Pruning | 22 | 4 | **81.8%** | 297 B | 62 B | 148 B | **50.2%** |
-| **Sample 5** | Iterative Fibonacci Algorithm | 31 | 22 | **29.0%** | 388 B | 102 B | 199 B | **48.7%** |
+| **Sample 1** | Arithmetic & Constant Folding | 33 | 6 | **81.8%** | 376 B | 87 B | 232 B | **38.3%** |
+| **Sample 2** | CFG Branches & SSA Phi Nodes | 32 | 17 | **46.9%** | 360 B | 90 B | 182 B | **49.4%** |
+| **Sample 3** | Redundant GVN Expressions | 32 | 7 | **78.1%** | 360 B | 44 B | 98 B | **72.8%** |
+| **Sample 4** | Dead Code & Dead Branch Pruning | 28 | 3 | **89.3%** | 360 B | 61 B | 132 B | **63.3%** |
+| **Sample 5** | Iterative Fibonacci Algorithm | 27 | 22 | **18.5%** | 332 B | 104 B | 208 B | **37.4%** |
 
 ### Key Observations:
 1. **Instruction Reduction**: Programs with heavy compile-time expressions or dead branches (Sample 1 and Sample 4) achieved over **81% reduction in instruction count**.
-2. **Byte-Level Footprint Reduction**: Across all benchmarks, converting raw TAC text into serialized binary bytecode achieved **74% to 83% footprint reduction**.
+2. **Byte-Level Footprint Reduction**: Across all benchmarks, converting raw TAC text into serialized binary bytecode achieved **69% to 88%** footprint reduction. Note that the single-stream canonical-Huffman package (the *Huffman Bitstream* column) carries a frequency-table header that, on these small inputs, can offset part of that gain — hence the lower end-to-end *Total Compression Ratio*. The advanced Columnar SoA path (opcode/flag/delta/immediate stream separation) recovers this, reaching **~36% to 75%** end-to-end.
 3. **Symbol Table Savings**: Frequency-based identifier minification consistently reduced symbol table storage requirements by **60% to 65%**.
 4. **Constant Pooling**: Redundant string and numeric literals saved up to **20%** of literal storage.
 

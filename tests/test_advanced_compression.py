@@ -140,7 +140,7 @@ def test_advanced_end_to_end_engine():
         symbol_names=symbol_names
     )
 
-    assert metrics["verification_status"] == "100% Lossless Round-Trip Verified"
+    assert metrics["verification_status"] == "Lossless Round-Trip Verified (full instruction reconstruction)"
     assert metrics["soa_container_bytes"] > 0
     assert metrics["soa_container_bytes"] < len(raw_instructions) * 20
     assert metrics["final_advanced_compression_percent"] > 50.0

@@ -144,14 +144,20 @@ class Lexer:
                     self.advance()
             elif ch == '/' and self.peek_char() == '*':
                 # Multi line comment
+                comment_line = self.line
+                comment_col = self.col
                 self.advance()
                 self.advance()
+                closed = False
                 while self.pos < self.length:
                     if self.current_char() == '*' and self.peek_char() == '/':
                         self.advance()
                         self.advance()
+                        closed = True
                         break
                     self.advance()
+                if not closed:
+                    raise LexerError("Unterminated multi-line comment", comment_line, comment_col)
             else:
                 break
 

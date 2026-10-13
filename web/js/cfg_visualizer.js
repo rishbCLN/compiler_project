@@ -106,6 +106,12 @@ class GraphVisualizer {
                         'target-arrow-color': '#10b981',
                         'color': '#10b981',
                         'width': 2.5,
+                        // Non-color cue (WCAG 1.4.1): a text glyph so the
+                        // true/false meaning survives color-blind rendering.
+                        'label': 'T',
+                        'font-weight': 'bold',
+                        'font-size': '13px',
+                        'source-label': '',
                     }
                 },
                 {
@@ -115,6 +121,12 @@ class GraphVisualizer {
                         'target-arrow-color': '#f43f5e',
                         'color': '#f43f5e',
                         'width': 2.5,
+                        'line-style': 'dashed',
+                        // Non-color cue: dashed line + 'F' glyph distinguish the
+                        // false edge independent of its red hue.
+                        'label': 'F',
+                        'font-weight': 'bold',
+                        'font-size': '13px',
                     }
                 },
                 {
@@ -157,29 +169,40 @@ class GraphVisualizer {
         this.cy.add(elements);
 
         const isDagre = typeof cytoscape !== 'undefined' && cytoscape('layout', 'dagre');
+        // Honor the user's reduced-motion preference (WCAG 2.3.3): skip the
+        // layout tween entirely when the OS/browser requests less animation.
+        const reduceMotion = window.matchMedia
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const layoutOptions = isDagre ? {
             name: 'dagre',
             rankDir: 'TB',
             nodeSep: 70,
             rankSep: 90,
             padding: 30,
-            animate: true,
-            animationDuration: 300
+            animate: !reduceMotion,
+            animationDuration: reduceMotion ? 0 : 300
         } : {
             name: 'breadthfirst',
             directed: true,
             padding: 30,
             spacingFactor: 1.4,
-            animate: true
+            animate: !reduceMotion
         };
 
         const layout = this.cy.layout(layoutOptions);
         layout.run();
+        // Ensure the viewport matches the (possibly previously-hidden) container
+        // before fitting, otherwise a graph first laid out while its tab pane was
+        // display:none renders at 0x0 and fit() alone cannot recover it.
+        this.cy.resize();
         this.cy.fit(undefined, 30);
     }
 
     fit() {
         if (this.cy) {
+            // resize() re-reads the container dimensions; required when the tab
+            // becomes visible for the first time after being display:none.
+            this.cy.resize();
             this.cy.fit(undefined, 30);
         }
     }
@@ -210,6 +233,8 @@ function getCfgVisualizer() {
     if (!cfgVisualizerInstance) {
         cfgVisualizerInstance = new GraphVisualizer('cfg-canvas');
         cfgVisualizerInstance.init();
+        // Expose for the headless UI test-suite to introspect rendered nodes.
+        window.__cfgViz = cfgVisualizerInstance;
     }
     return cfgVisualizerInstance;
 }
@@ -218,6 +243,8 @@ function getDomTreeVisualizer() {
     if (!domTreeVisualizerInstance) {
         domTreeVisualizerInstance = new GraphVisualizer('domtree-canvas');
         domTreeVisualizerInstance.init();
+        // Expose for the headless UI test-suite to introspect rendered nodes.
+        window.__domViz = domTreeVisualizerInstance;
     }
     return domTreeVisualizerInstance;
 }

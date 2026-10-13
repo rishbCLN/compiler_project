@@ -119,7 +119,6 @@ class SymbolTable:
         sorted_syms = sorted(self.all_symbols, key=lambda s: s.ref_count, reverse=True)
 
         alias_chars = "abcdefghijklmnopqrstuvwxyz"
-        used_aliases = {}
         mapping: Dict[str, str] = {}
 
         for idx, sym in enumerate(sorted_syms):
@@ -128,8 +127,18 @@ class SymbolTable:
             else:
                 alias = f"_{alias_chars[idx % len(alias_chars)]}{idx // len(alias_chars)}"
             sym.minified_name = alias
-            mapping[sym.name] = alias
-            self.name_to_minified[sym.name] = alias
+
+            # Scope-qualified key guarantees distinct scopes that declare the
+            # same identifier never collide onto the same alias entry.
+            qualified = f"{sym.name}#{sym.scope_level}"
+            mapping[qualified] = alias
+            self.name_to_minified[qualified] = alias
+
+            # Preserve a bare-name entry for the primary (first / most-referenced
+            # due to the frequency sort) occurrence for backward-compatible lookups.
+            if sym.name not in mapping:
+                mapping[sym.name] = alias
+                self.name_to_minified[sym.name] = alias
 
         return mapping
 

@@ -8,12 +8,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <!--
+        Front-end libraries are vendored locally in web/vendor/ so the Studio
+        works offline and the headless UI test-suite is hermetic. Pinned sources:
+          chart.min.js            chart.js@4.4.1 (dist/chart.umd.min.js)
+          cytoscape.min.js        cytoscape@3.28.1
+          dagre.min.js            dagre@0.8.5
+          cytoscape-dagre.min.js  cytoscape-dagre@2.5.0
+    -->
     <!-- Chart.js for interactive analytics -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="vendor/chart.min.js"></script>
     <!-- Cytoscape.js for interactive CFG graph layout -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
+    <script src="vendor/cytoscape.min.js"></script>
+    <script src="vendor/dagre.min.js"></script>
+    <script src="vendor/cytoscape-dagre.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -77,7 +85,7 @@
 
                 <div class="panel-footer">
                     <span id="cursor-pos">Ln 1, Col 1</span>
-                    <span class="badge" id="compiler-status">Ready</span>
+                    <span class="badge" id="compiler-status" role="status" aria-live="polite">Ready</span>
                 </div>
             </section>
 
@@ -224,6 +232,11 @@
                                             <div class="stat-value text-amber" id="adv-immediates-stream">0 B</div>
                                             <div class="stat-sub">Front-coded & interned</div>
                                         </div>
+                                        <div class="stat-card">
+                                            <div class="stat-label">Final SoA Bitstream</div>
+                                            <div class="stat-value text-emerald" id="adv-final-bitstream">0 B</div>
+                                            <div class="stat-sub" id="adv-final-percent">0% vs raw IR</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -340,6 +353,7 @@
                                     <span class="badge" id="const-count-badge">0 Literals</span>
                                 </div>
                                 <div class="card-body scrollable-card">
+                                    <div id="const-pool-summary" class="pool-summary"></div>
                                     <table class="data-table" id="constant-pool-view">
                                         <thead>
                                             <tr>
@@ -428,6 +442,9 @@
             </section>
         </main>
     </div>
+
+    <!-- Toast notifications (non-blocking replacement for alert()) -->
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Application JavaScript Bundles -->
     <script src="js/cfg_visualizer.js"></script>

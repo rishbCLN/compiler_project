@@ -197,7 +197,7 @@ class Parser:
 
         init: Optional[ASTNode] = None
         if self.current_token().type != TokenType.SEMICOLON:
-            if self.current_token().type in (TokenType.INT, TokenType.FLOAT):
+            if self.current_token().type in (TokenType.INT, TokenType.FLOAT, TokenType.STRING, TokenType.BOOL):
                 init = self.parse_var_decl()
             else:
                 ident_tok = self.expect(TokenType.IDENTIFIER)
@@ -218,7 +218,8 @@ class Parser:
             # Could be assignment without semicolon
             ident_tok = self.expect(TokenType.IDENTIFIER)
             assign_op = self.current_token()
-            if assign_op.type in (TokenType.ASSIGN, TokenType.PLUS_ASSIGN, TokenType.MINUS_ASSIGN):
+            if assign_op.type in (TokenType.ASSIGN, TokenType.PLUS_ASSIGN, TokenType.MINUS_ASSIGN,
+                                 TokenType.STAR_ASSIGN, TokenType.SLASH_ASSIGN):
                 self.pos += 1
                 val = self.parse_expression()
                 if assign_op.type != TokenType.ASSIGN:
