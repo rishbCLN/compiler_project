@@ -57,7 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
         lineNumbersElem.innerHTML = Array.from({ length: lines }, (_, i) => i + 1).join('<br>');
     }
 
-    sourceCodeElem.addEventListener('input', updateLineNumbers);
+    sourceCodeElem.addEventListener('input', () => {
+        updateLineNumbers();
+        compilerStatus.textContent = 'Ready';
+        compilerStatus.className = 'badge';
+    });
     sourceCodeElem.addEventListener('scroll', () => {
         lineNumbersElem.scrollTop = sourceCodeElem.scrollTop;
     });
@@ -183,12 +187,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 sampleSelect.appendChild(opt);
             });
 
-            // Pre-load sample 1 by default
+            // Pre-load sample 1 by default into editor without auto-compiling
             if (samples.length > 0) {
                 sampleSelect.value = 0;
                 sourceCodeElem.value = samples[0].code;
                 updateLineNumbers();
-                runCompilation();
             }
         } catch (err) {
             console.error('Failed to load samples:', err);
@@ -200,7 +203,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (idx !== '' && samples[idx]) {
             sourceCodeElem.value = samples[idx].code;
             updateLineNumbers();
-            runCompilation();
+            compilerStatus.textContent = 'Ready';
+            compilerStatus.className = 'badge';
         }
     });
 
@@ -251,6 +255,8 @@ document.addEventListener('DOMContentLoaded', () => {
     btnClear.addEventListener('click', () => {
         sourceCodeElem.value = '';
         updateLineNumbers();
+        compilerStatus.textContent = 'Ready';
+        compilerStatus.className = 'badge';
     });
 
     // Shortcut: Ctrl+Enter to compile

@@ -28,7 +28,8 @@ def page(browser, live_server):
     ctx = browser.new_context(viewport={"width": 1400, "height": 900})
     pg = ctx.new_page()
     pg.goto(live_server, wait_until="networkidle")
-    # Default sample auto-compiles on load; wait for the status badge to settle.
+    # Click Run Pipeline and wait for compilation to complete
+    pg.click("#btn-compile")
     pg.wait_for_function(
         "() => document.getElementById('compiler-status')"
         ".textContent.trim() === 'Optimized & Compressed'",
@@ -44,7 +45,18 @@ def _switch_tab(page, data_tab):
 
 # ---------------------------------------------------------------- load & compile
 
-def test_default_sample_autocompiles_overview(page):
+def test_initial_page_load_awaits_run_pipeline(browser, live_server):
+    ctx = browser.new_context(viewport={"width": 1400, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(live_server, wait_until="networkidle")
+    # Editor is loaded with sample code, but has NOT run compilation yet
+    assert len(pg.input_value("#source-code").strip()) > 0
+    assert pg.text_content("#compiler-status").strip() == "Ready"
+    assert pg.text_content("#stat-final-ratio").strip() == "0.0%"
+    ctx.close()
+
+
+def test_default_sample_compiles_overview(page):
     ratio = page.text_content("#stat-final-ratio").strip()
     assert ratio != "0.0%"
     assert "%" in ratio
@@ -111,6 +123,7 @@ def test_ssa_tab_renders_dominator_tree(page):
 def test_raw_cfg_shows_unoptimized_ir(page):
     # Load sample 4 (dead-code) which contains ghost_var / 999 in the dead branch.
     page.select_option("#sample-select", label="Dead Code Elimination (DCE) & Unreachable Branch Pruning")
+    page.click("#btn-compile")
     page.wait_for_function(
         "() => document.getElementById('compiler-status')"
         ".textContent.trim() === 'Optimized & Compressed'",
@@ -202,6 +215,7 @@ def test_branch_edges_have_non_color_labels(page):
     # Load the branch-heavy dead-code sample and verify T/F glyphs exist so the
     # true/false meaning is conveyed without relying on color alone.
     page.select_option("#sample-select", label="Dead Code Elimination (DCE) & Unreachable Branch Pruning")
+    page.click("#btn-compile")
     page.wait_for_function(
         "() => document.getElementById('compiler-status')"
         ".textContent.trim() === 'Optimized & Compressed'",
