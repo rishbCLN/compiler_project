@@ -141,6 +141,22 @@ body {
     border-color: var(--accent-cyan);
 }
 
+.dropdown-select-sm {
+    padding: 0.3rem 0.65rem;
+    font-size: 0.78rem;
+    background: rgba(15, 23, 42, 0.9);
+    border-color: rgba(148, 163, 184, 0.25);
+    max-width: 250px;
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+}
+
+.editor-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .sr-only {
     position: absolute;
     width: 1px;

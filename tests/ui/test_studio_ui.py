@@ -64,6 +64,19 @@ def test_default_sample_compiles_overview(page):
     assert "Instructions" in page.text_content("#stat-instr-detail")
 
 
+def test_input_section_dropdown_syncs_and_loads(page):
+    # Select sample via the input section dropdown
+    page.select_option("#input-sample-select", index=6)
+    assert page.text_content("#compiler-status").strip() == "Ready"
+    # Ensure header dropdown also synced
+    assert page.input_value("#sample-select") == page.input_value("#input-sample-select")
+    page.click("#btn-compile")
+    page.wait_for_function(
+        "() => document.getElementById('compiler-status').textContent.trim() === 'Optimized & Compressed'",
+        timeout=30000,
+    )
+
+
 def test_offline_vendor_assets_loaded(page):
     # Globals provided by the vendored libs must be present (proves local load).
     assert page.evaluate("() => typeof window.cytoscape === 'function'")

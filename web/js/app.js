@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnExport = document.getElementById('btn-export');
     const btnClear = document.getElementById('btn-clear');
     const sampleSelect = document.getElementById('sample-select');
+    const inputSampleSelect = document.getElementById('input-sample-select');
     const compilerStatus = document.getElementById('compiler-status');
     const cursorPosElem = document.getElementById('cursor-pos');
     const tabButtons = document.querySelectorAll('.tab-btn');
@@ -180,16 +181,28 @@ document.addEventListener('DOMContentLoaded', () => {
             samples = data.samples || [];
 
             sampleSelect.innerHTML = '<option value="">Load Academic Benchmark...</option>';
+            if (inputSampleSelect) {
+                inputSampleSelect.innerHTML = '<option value="">Choose Example...</option>';
+            }
+
             samples.forEach((sample, idx) => {
                 const opt = document.createElement('option');
                 opt.value = idx;
                 opt.textContent = `${sample.title}`;
                 sampleSelect.appendChild(opt);
+
+                if (inputSampleSelect) {
+                    const optInput = document.createElement('option');
+                    optInput.value = idx;
+                    optInput.textContent = `${sample.title}`;
+                    inputSampleSelect.appendChild(optInput);
+                }
             });
 
             // Pre-load sample 1 by default into editor without auto-compiling
             if (samples.length > 0) {
                 sampleSelect.value = 0;
+                if (inputSampleSelect) inputSampleSelect.value = 0;
                 sourceCodeElem.value = samples[0].code;
                 updateLineNumbers();
             }
@@ -198,15 +211,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    sampleSelect.addEventListener('change', () => {
-        const idx = sampleSelect.value;
+    function handleSampleChange(idx) {
         if (idx !== '' && samples[idx]) {
+            sampleSelect.value = idx;
+            if (inputSampleSelect) inputSampleSelect.value = idx;
             sourceCodeElem.value = samples[idx].code;
             updateLineNumbers();
             compilerStatus.textContent = 'Ready';
             compilerStatus.className = 'badge';
         }
-    });
+    }
+
+    sampleSelect.addEventListener('change', () => handleSampleChange(sampleSelect.value));
+    if (inputSampleSelect) {
+        inputSampleSelect.addEventListener('change', () => handleSampleChange(inputSampleSelect.value));
+    }
 
     // ---------------- Compilation Runner ----------------
 
