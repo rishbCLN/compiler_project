@@ -3,10 +3,12 @@
  */
 
 let compressionChartInstance = null;
+let compressionChartAnalyticsInstance = null;
 
 function renderCompressionChart(metrics, advanced) {
     const canvas = document.getElementById('compression-chart');
-    if (!canvas) return;
+    const canvasAnalytics = document.getElementById('compression-chart-analytics');
+    if (!canvas && !canvasAnalytics) return;
 
     const rawBytes = metrics.raw_ir_text_bytes || 100;
     const optBytes = metrics.optimized_ir_text_bytes || 60;
@@ -109,14 +111,29 @@ function renderCompressionChart(metrics, advanced) {
         }
     };
 
-    if (compressionChartInstance) {
-        compressionChartInstance.data = data;
-        compressionChartInstance.update();
-    } else {
-        compressionChartInstance = new Chart(canvas, {
-            type: 'bar',
-            data: data,
-            options: options
-        });
+    if (canvas) {
+        if (compressionChartInstance) {
+            compressionChartInstance.data = JSON.parse(JSON.stringify(data));
+            compressionChartInstance.update();
+        } else {
+            compressionChartInstance = new Chart(canvas, {
+                type: 'bar',
+                data: JSON.parse(JSON.stringify(data)),
+                options: options
+            });
+        }
+    }
+
+    if (canvasAnalytics) {
+        if (compressionChartAnalyticsInstance) {
+            compressionChartAnalyticsInstance.data = JSON.parse(JSON.stringify(data));
+            compressionChartAnalyticsInstance.update();
+        } else {
+            compressionChartAnalyticsInstance = new Chart(canvasAnalytics, {
+                type: 'bar',
+                data: JSON.parse(JSON.stringify(data)),
+                options: options
+            });
+        }
     }
 }

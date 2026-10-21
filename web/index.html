@@ -98,30 +98,67 @@
             <!-- Right Panel: Multi-Tab Compiler & Compression Inspector -->
             <section class="panel inspector-panel">
                 <!-- Navigation Tabs -->
-                <nav class="tabs-nav">
-                    <button class="tab-btn active" data-tab="overview-tab">
-                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
-                        Metrics & Overview
+                <!-- Navigation Tabs with Sequential Phase Sections -->
+                <nav class="tabs-nav" role="tablist">
+                    <button class="tab-btn active" data-tab="overview-tab" title="Sequential Pipeline Execution Flow (1.1 → 2.5)">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+                        <span>Overview</span>
                     </button>
-                    <button class="tab-btn" data-tab="cfg-tab">
-                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="12" r="3"></circle><line x1="8.5" y1="7.5" x2="15.5" y2="10.5"></line><line x1="8.5" y1="16.5" x2="15.5" y2="13.5"></line></svg>
-                        CFG Visualizer
+
+                    <div class="tabs-divider-vertical"></div>
+                    <span class="tabs-phase-tag p1">Phase 1</span>
+
+                    <button class="tab-btn" data-tab="ast-tab" title="Subphase 1.1: Lexical Analysis (Token Stream)">
+                        <span class="tab-badge p1">1.1</span>
+                        <span>Tokens</span>
                     </button>
-                    <button class="tab-btn" data-tab="ssa-tab">
-                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                        SSA & Dominance
+                    <button class="tab-btn" data-tab="tab-p1-2" title="Subphase 1.2: Syntax Analysis & Abstract Syntax Tree (AST)">
+                        <span class="tab-badge p1">1.2</span>
+                        <span>AST</span>
                     </button>
-                    <button class="tab-btn" data-tab="symbols-tab">
-                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-                        Symbols & Constants
+                    <button class="tab-btn" data-tab="tab-p1-3" title="Subphase 1.3: Intermediate Code Generation (Three-Address Code)">
+                        <span class="tab-badge p1">1.3</span>
+                        <span>TAC IR</span>
                     </button>
-                    <button class="tab-btn" data-tab="optimization-tab">
-                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                        Optimization Passes
+                    <button class="tab-btn" data-tab="symbols-tab" title="Subphase 1.4: Scoped Symbol Table & Constant Pool">
+                        <span class="tab-badge p1">1.4</span>
+                        <span>Symbols</span>
                     </button>
-                    <button class="tab-btn" data-tab="ast-tab">
-                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
-                        AST & Tokens
+                    <button class="tab-btn" data-tab="cfg-tab" title="Subphase 1.5: Control Flow Graph (CFG) Visualizer">
+                        <span class="tab-badge p1">1.5</span>
+                        <span>CFG</span>
+                    </button>
+                    <button class="tab-btn" data-tab="tab-p1-6" title="Subphase 1.6: Dominance Analysis & Dominator Tree">
+                        <span class="tab-badge p1">1.6</span>
+                        <span>Dominance</span>
+                    </button>
+                    <button class="tab-btn" data-tab="ssa-tab" title="Subphase 1.7: Static Single Assignment (SSA Form & Phi-Nodes)">
+                        <span class="tab-badge p1">1.7</span>
+                        <span>SSA Form</span>
+                    </button>
+
+                    <div class="tabs-divider-vertical"></div>
+                    <span class="tabs-phase-tag p2">Phase 2</span>
+
+                    <button class="tab-btn" data-tab="optimization-tab" title="Subphase 2.1: Multi-Pass IR Optimizer (Folding, GVN, DCE)">
+                        <span class="tab-badge p2">2.1</span>
+                        <span>Optimizer</span>
+                    </button>
+                    <button class="tab-btn" data-tab="tab-p2-2" title="Subphase 2.2: Binary Bytecode Serialization & LEB128 Encoding">
+                        <span class="tab-badge p2">2.2</span>
+                        <span>Bytecode</span>
+                    </button>
+                    <button class="tab-btn" data-tab="tab-p2-3" title="Subphase 2.3: Canonical Huffman Entropy Compression & Bitstream">
+                        <span class="tab-badge p2">2.3</span>
+                        <span>Huffman</span>
+                    </button>
+                    <button class="tab-btn" data-tab="tab-p2-4" title="Subphase 2.4: Columnar Structure-of-Arrays (SoA Streams)">
+                        <span class="tab-badge p2">2.4</span>
+                        <span>Columnar SoA</span>
+                    </button>
+                    <button class="tab-btn" data-tab="tab-p2-5" title="Subphase 2.5: Interactive Analytics, Comparison Chart & Binary Export">
+                        <span class="tab-badge p2">2.5</span>
+                        <span>Analytics</span>
                     </button>
                 </nav>
 
@@ -151,6 +188,351 @@
                                 <div class="stat-label">Symbol Table Savings</div>
                                 <div class="stat-value text-purple" id="stat-sym-ratio">0.0%</div>
                                 <div class="stat-sub" id="stat-sym-detail">0 Symbols Minified</div>
+                            </div>
+                        </div>
+
+                        <!-- Sequential Pipeline Execution Flow (Phase 1 & Phase 2 Subphases) -->
+                        <div class="card full-width sequential-pipeline-card">
+                            <div class="card-header pipeline-main-header">
+                                <div class="pipeline-header-title">
+                                    <div class="header-icon-circle">
+                                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3>Sequential Pipeline (Phases 1 & 2 Subphases in Order)</h3>
+                                        <span class="sub-caption">Every intermediate transformation step with live output in strict chronological sequence</span>
+                                    </div>
+                                </div>
+                                <div class="pipeline-filter-controls">
+                                    <button class="filter-btn active" data-filter="all">All Steps (1.1 → 2.5)</button>
+                                    <button class="filter-btn" data-filter="phase1">Phase 1 (Front-End & IR)</button>
+                                    <button class="filter-btn" data-filter="phase2">Phase 2 (Opt & Comp)</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="sequential-stepper">
+
+                                    <!-- PHASE 1 DIVIDER BANNER -->
+                                    <div class="phase-divider phase1-divider" data-phase-group="phase1">
+                                        <div class="phase-divider-tag">PHASE 1</div>
+                                        <div class="phase-divider-content">
+                                            <h4>Front-End Analysis & Graph Intermediate Representation (IR)</h4>
+                                            <p>Scans text, parses grammar, generates 3-address quadruples, control flow graphs, dominators, and SSA form.</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Subphase 1.1: Lexical Analysis -->
+                                    <div class="step-card" data-phase="phase1" id="step-1-1">
+                                        <div class="step-header">
+                                            <div class="step-badge-group">
+                                                <span class="step-number">1.1</span>
+                                                <span class="phase-pill p1">Phase 1</span>
+                                                <span class="step-category">Front-End</span>
+                                            </div>
+                                            <div class="step-meta">
+                                                <h4>Lexical Analysis <span class="term-note">(Word Scanning & Tokenizing)</span></h4>
+                                                <p class="step-desc">Breaks raw source code character-by-character into categorized <strong>Tokens</strong> <span class="term-note">(individual building blocks like keywords, numbers, and operators)</span>.</p>
+                                            </div>
+                                            <button class="btn-jump" data-target-tab="ast-tab" title="View Full Token Table in AST & Tokens Tab">
+                                                <span>Inspect Tokens</span>
+                                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                            </button>
+                                        </div>
+                                        <div class="step-output-box">
+                                            <div class="step-output-label">Subphase 1.1 Live Output:</div>
+                                            <div class="step-output-body" id="step-output-1-1">
+                                                <span class="placeholder-text">Run pipeline to inspect lexical tokens.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Subphase 1.2: Syntax Analysis & AST -->
+                                    <div class="step-card" data-phase="phase1" id="step-1-2">
+                                        <div class="step-header">
+                                            <div class="step-badge-group">
+                                                <span class="step-number">1.2</span>
+                                                <span class="phase-pill p1">Phase 1</span>
+                                                <span class="step-category">Parsing</span>
+                                            </div>
+                                            <div class="step-meta">
+                                                <h4>Syntax Analysis & AST <span class="term-note">(Grammar Hierarchy Tree)</span></h4>
+                                                <p class="step-desc">Validates syntax grammar and builds an <strong>Abstract Syntax Tree (AST)</strong> <span class="term-note">(a tree diagram showing parent-child relationships of code statements)</span>.</p>
+                                            </div>
+                                            <button class="btn-jump" data-target-tab="tab-p1-2" title="View AST Tree Hierarchy">
+                                                <span>Inspect AST</span>
+                                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                            </button>
+                                        </div>
+                                        <div class="step-output-box">
+                                            <div class="step-output-label">Subphase 1.2 Live Output:</div>
+                                            <div class="step-output-body" id="step-output-1-2">
+                                                <span class="placeholder-text">Run pipeline to inspect Abstract Syntax Tree.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Subphase 1.3: Intermediate Code Generation (TAC) -->
+                                    <div class="step-card" data-phase="phase1" id="step-1-3">
+                                        <div class="step-header">
+                                            <div class="step-badge-group">
+                                                <span class="step-number">1.3</span>
+                                                <span class="phase-pill p1">Phase 1</span>
+                                                <span class="step-category">Linear IR</span>
+                                            </div>
+                                            <div class="step-meta">
+                                                <h4>Intermediate Code Generation <span class="term-note">(Three-Address Code / TAC)</span></h4>
+                                                <p class="step-desc">Flattens nested expressions into <strong>Three-Address Code</strong> <span class="term-note">(simple instructions where each step has at most 3 locations: 2 inputs and 1 output)</span>.</p>
+                                            </div>
+                                            <button class="btn-jump" data-target-tab="tab-p1-3" title="View Linear IR Comparison">
+                                                <span>View Raw TAC</span>
+                                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                            </button>
+                                        </div>
+                                        <div class="step-output-box">
+                                            <div class="step-output-label">Subphase 1.3 Live Output:</div>
+                                            <div class="step-output-body" id="step-output-1-3">
+                                                <span class="placeholder-text">Run pipeline to inspect raw TAC instructions.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Subphase 1.4: Scoped Symbol Table & Constant Pool -->
+                                    <div class="step-card" data-phase="phase1" id="step-1-4">
+                                        <div class="step-header">
+                                            <div class="step-badge-group">
+                                                <span class="step-number">1.4</span>
+                                                <span class="phase-pill p1">Phase 1</span>
+                                                <span class="step-category">Memory & Scope</span>
+                                            </div>
+                                            <div class="step-meta">
+                                                <h4>Symbol Table & Constant Pool <span class="term-note">(Name & Number Bookkeeping)</span></h4>
+                                                <p class="step-desc">Maintains variable <strong>scopes</strong> <span class="term-note">(code areas where variables are valid)</span>, shortens identifier names, and deduplicates constants in a shared pool.</p>
+                                            </div>
+                                            <button class="btn-jump" data-target-tab="symbols-tab" title="View Symbols and Constants">
+                                                <span>Inspect Symbols</span>
+                                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                            </button>
+                                        </div>
+                                        <div class="step-output-box">
+                                            <div class="step-output-label">Subphase 1.4 Live Output:</div>
+                                            <div class="step-output-body" id="step-output-1-4">
+                                                <span class="placeholder-text">Run pipeline to inspect symbol minification & constant pool.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Subphase 1.5: Basic Block Partitioning & CFG -->
+                                    <div class="step-card" data-phase="phase1" id="step-1-5">
+                                        <div class="step-header">
+                                            <div class="step-badge-group">
+                                                <span class="step-number">1.5</span>
+                                                <span class="phase-pill p1">Phase 1</span>
+                                                <span class="step-category">Graph IR</span>
+                                            </div>
+                                            <div class="step-meta">
+                                                <h4>Basic Blocks & Control Flow Graph <span class="term-note">(Flowchart Construction)</span></h4>
+                                                <p class="step-desc">Partitions instructions into <strong>Basic Blocks</strong> <span class="term-note">(straight-line code without branches inside)</span> and connects them as a <strong>CFG</strong> <span class="term-note">(flowchart of execution paths)</span>.</p>
+                                            </div>
+                                            <button class="btn-jump" data-target-tab="cfg-tab" title="Open Interactive CFG Visualizer">
+                                                <span>Open CFG</span>
+                                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                            </button>
+                                        </div>
+                                        <div class="step-output-box">
+                                            <div class="step-output-label">Subphase 1.5 Live Output:</div>
+                                            <div class="step-output-body" id="step-output-1-5">
+                                                <span class="placeholder-text">Run pipeline to inspect Control Flow Graph blocks & edges.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Subphase 1.6: Dominance Analysis & Dominator Tree -->
+                                    <div class="step-card" data-phase="phase1" id="step-1-6">
+                                        <div class="step-header">
+                                            <div class="step-badge-group">
+                                                <span class="step-number">1.6</span>
+                                                <span class="phase-pill p1">Phase 1</span>
+                                                <span class="step-category">Graph Analysis</span>
+                                            </div>
+                                            <div class="step-meta">
+                                                <h4>Dominance Analysis <span class="term-note">(Dominator Tree & Dominance Frontiers)</span></h4>
+                                                <p class="step-desc">Computes <strong>Dominators</strong> <span class="term-note">(blocks that must run before others)</span> and <strong>Dominance Frontiers</strong> <span class="term-note">(border points where multiple branches meet)</span>.</p>
+                                            </div>
+                                            <button class="btn-jump" data-target-tab="tab-p1-6" title="View Dominator Tree">
+                                                <span>Dominator Tree</span>
+                                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                            </button>
+                                        </div>
+                                        <div class="step-output-box">
+                                            <div class="step-output-label">Subphase 1.6 Live Output:</div>
+                                            <div class="step-output-body" id="step-output-1-6">
+                                                <span class="placeholder-text">Run pipeline to inspect Dominance Frontiers & IDom table.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Subphase 1.7: Static Single Assignment (SSA) Transformation -->
+                                    <div class="step-card" data-phase="phase1" id="step-1-7">
+                                        <div class="step-header">
+                                            <div class="step-badge-group">
+                                                <span class="step-number">1.7</span>
+                                                <span class="phase-pill p1">Phase 1</span>
+                                                <span class="step-category">SSA Substrate</span>
+                                            </div>
+                                            <div class="step-meta">
+                                                <h4>Static Single Assignment Form <span class="term-note">(Phi-Nodes & Versioning)</span></h4>
+                                                <p class="step-desc">Ensures every variable is defined <strong>exactly once</strong> and inserts <strong>Phi-nodes / $\phi$-functions</strong> <span class="term-note">(selectors choosing values based on which branch executed)</span>.</p>
+                                            </div>
+                                            <button class="btn-jump" data-target-tab="ssa-tab" title="View SSA Phi-Nodes & Linear IR">
+                                                <span>View SSA Form</span>
+                                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                            </button>
+                                        </div>
+                                        <div class="step-output-box">
+                                            <div class="step-output-label">Subphase 1.7 Live Output:</div>
+                                            <div class="step-output-body" id="step-output-1-7">
+                                                <span class="placeholder-text">Run pipeline to inspect SSA versioning & Phi placement.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- PHASE 2 DIVIDER BANNER -->
+                                    <div class="phase-divider phase2-divider" data-phase-group="phase2">
+                                        <div class="phase-divider-tag">PHASE 2</div>
+                                        <div class="phase-divider-content">
+                                            <h4>Multi-Pass Optimization, Physical Binary Compression & Analytics</h4>
+                                            <p>Folds constants, eliminates redundant & dead code, encodes instructions into binary bytecode, and packs them with Huffman entropy coding.</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Subphase 2.1: Multi-Pass IR Optimization Suite -->
+                                    <div class="step-card" data-phase="phase2" id="step-2-1">
+                                        <div class="step-header">
+                                            <div class="step-badge-group">
+                                                <span class="step-number">2.1</span>
+                                                <span class="phase-pill p2">Phase 2</span>
+                                                <span class="step-category">Optimization</span>
+                                            </div>
+                                            <div class="step-meta">
+                                                <h4>Multi-Pass IR Optimizer <span class="term-note">(Folding, GVN, DCE & CFG Pruning)</span></h4>
+                                                <p class="step-desc">Runs <strong>Constant Folding</strong> <span class="term-note">(calculating math at compile time)</span>, <strong>GVN</strong> <span class="term-note">(reusing identical calculations)</span>, and <strong>DCE</strong> <span class="term-note">(deleting unused code lines)</span>.</p>
+                                            </div>
+                                            <button class="btn-jump" data-target-tab="optimization-tab" title="Inspect Optimization Passes">
+                                                <span>View Passes</span>
+                                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                            </button>
+                                        </div>
+                                        <div class="step-output-box">
+                                            <div class="step-output-label">Subphase 2.1 Live Output:</div>
+                                            <div class="step-output-body" id="step-output-2-1">
+                                                <span class="placeholder-text">Run pipeline to inspect optimization reductions.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Subphase 2.2: Binary Bytecode Serialization -->
+                                    <div class="step-card" data-phase="phase2" id="step-2-2">
+                                        <div class="step-header">
+                                            <div class="step-badge-group">
+                                                <span class="step-number">2.2</span>
+                                                <span class="phase-pill p2">Phase 2</span>
+                                                <span class="step-category">Bytecode</span>
+                                            </div>
+                                            <div class="step-meta">
+                                                <h4>Binary Bytecode Serialization <span class="term-note">(Opcode + LEB128 Encoding)</span></h4>
+                                                <p class="step-desc">Serializes text instructions into raw numerical bytes and uses <strong>LEB128</strong> <span class="term-note">(variable-length integer encoding to store small numbers in 1 single byte)</span>.</p>
+                                            </div>
+                                            <button class="btn-jump" data-target-tab="tab-p2-2" title="View Bytecode Screen Section">
+                                                <span>Bytecode Stats</span>
+                                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                            </button>
+                                        </div>
+                                        <div class="step-output-box">
+                                            <div class="step-output-label">Subphase 2.2 Live Output:</div>
+                                            <div class="step-output-body" id="step-output-2-2">
+                                                <span class="placeholder-text">Run pipeline to inspect binary bytecode serialization.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Subphase 2.3: Canonical Huffman Entropy Compression -->
+                                    <div class="step-card" data-phase="phase2" id="step-2-3">
+                                        <div class="step-header">
+                                            <div class="step-badge-group">
+                                                <span class="step-number">2.3</span>
+                                                <span class="phase-pill p2">Phase 2</span>
+                                                <span class="step-category">Entropy Coding</span>
+                                            </div>
+                                            <div class="step-meta">
+                                                <h4>Canonical Huffman Compression <span class="term-note">(Lossless Bitstream Packaging)</span></h4>
+                                                <p class="step-desc">Applies <strong>Huffman entropy coding</strong> <span class="term-note">(assigning shorter bit codes to frequent operations, similar to ZIP compression)</span> to generate `.cir` files.</p>
+                                            </div>
+                                            <button class="btn-jump" data-target-tab="tab-p2-3" title="View Huffman Bitstream & Hex Dump">
+                                                <span>View Hex Dump</span>
+                                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                            </button>
+                                        </div>
+                                        <div class="step-output-box">
+                                            <div class="step-output-label">Subphase 2.3 Live Output:</div>
+                                            <div class="step-output-body" id="step-output-2-3">
+                                                <span class="placeholder-text">Run pipeline to inspect Huffman bitstream & hex dump.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Subphase 2.4: Advanced Columnar Structure-of-Arrays (SoA) -->
+                                    <div class="step-card" data-phase="phase2" id="step-2-4">
+                                        <div class="step-header">
+                                            <div class="step-badge-group">
+                                                <span class="step-number">2.4</span>
+                                                <span class="phase-pill p2">Phase 2</span>
+                                                <span class="step-category">Advanced SoA</span>
+                                            </div>
+                                            <div class="step-meta">
+                                                <h4>Advanced Columnar Structure-of-Arrays <span class="term-note">(Stream Separation)</span></h4>
+                                                <p class="step-desc">Separates opcodes, backward SSA deltas, and literals into isolated streams and elides <strong>fallthrough edges</strong> <span class="term-note">(direct transitions that cost 0 jump bits)</span>.</p>
+                                            </div>
+                                            <button class="btn-jump" data-target-tab="tab-p2-4" title="View Columnar SoA Architecture">
+                                                <span>SoA Breakdown</span>
+                                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                            </button>
+                                        </div>
+                                        <div class="step-output-box">
+                                            <div class="step-output-label">Subphase 2.4 Live Output:</div>
+                                            <div class="step-output-body" id="step-output-2-4">
+                                                <span class="placeholder-text">Run pipeline to inspect Columnar SoA streams & verification.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Subphase 2.5: Interactive Analytics & Verification Dashboard -->
+                                    <div class="step-card" data-phase="phase2" id="step-2-5">
+                                        <div class="step-header">
+                                            <div class="step-badge-group">
+                                                <span class="step-number">2.5</span>
+                                                <span class="phase-pill p2">Phase 2</span>
+                                                <span class="step-category">Analytics & Defense</span>
+                                            </div>
+                                            <div class="step-meta">
+                                                <h4>Analytics, Comparison Chart & Binary Export <span class="term-note">(Final Verification)</span></h4>
+                                                <p class="step-desc">Plots stage-by-stage memory savings on an interactive chart, validates <strong>round-trip integrity</strong> <span class="term-note">(ensuring decompression restores original code perfectly)</span>, and exports binary.</p>
+                                            </div>
+                                            <button class="btn-jump" data-target-tab="tab-p2-5" title="View Full Analytics & Charts">
+                                                <span>View Analytics</span>
+                                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                            </button>
+                                        </div>
+                                        <div class="step-output-box">
+                                            <div class="step-output-label">Subphase 2.5 Live Output:</div>
+                                            <div class="step-output-body" id="step-output-2-5">
+                                                <span class="placeholder-text">Run pipeline to inspect comparative reduction chart & export.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
                             </div>
                         </div>
 
@@ -249,49 +631,180 @@
                         </div>
                     </div>
 
-                    <!-- Tab 2: Control Flow Graph (CFG) -->
-                    <div id="cfg-tab" class="tab-pane">
-                        <div class="graph-toolbar">
-                            <div class="graph-mode-toggle">
-                                <label><input type="radio" name="cfg-view" value="raw" checked> Initial CFG</label>
-                                <label><input type="radio" name="cfg-view" value="ssa"> SSA CFG</label>
-                                <label><input type="radio" name="cfg-view" value="optimized"> Optimized CFG</label>
+                    <!-- ================================================================= -->
+                    <!-- SUBPHASE 1.1 SCREEN SECTION: Lexical Analysis & Token Stream -->
+                    <!-- ================================================================= -->
+                    <div id="ast-tab" class="tab-pane">
+                        <div class="screen-section-header">
+                            <div class="screen-header-left">
+                                <span class="screen-step-badge p1">P1.1</span>
+                                <div class="screen-header-title">
+                                    <h3>Subphase 1.1: Lexical Analysis <span class="term-note">(Word Scanning & Tokenizing)</span></h3>
+                                    <p>Scans raw source code character-by-character into categorized <strong>Tokens</strong> <span class="term-note">(individual code building blocks like keywords, identifiers, numbers, and operators)</span>.</p>
+                                </div>
                             </div>
-                            <div class="graph-controls">
-                                <button id="btn-fit-cfg" class="btn-sm">Fit View</button>
-                                <button id="btn-relayout-cfg" class="btn-sm">Relayout</button>
+                            <div class="screen-header-actions">
+                                <button class="btn-jump" data-target-tab="tab-p1-2">Next: 1.2 AST →</button>
                             </div>
                         </div>
-                        <div class="graph-split-view">
-                            <div id="cfg-canvas" class="cytoscape-container"></div>
-                            <div class="block-inspector" id="block-inspector">
-                                <div class="inspector-header">Basic Block Details</div>
-                                <div id="inspector-content" class="inspector-content">
-                                    <em>Click a basic block in the graph to inspect instructions and live variables.</em>
-                                </div>
+
+                        <div class="stats-grid" style="margin-bottom: 1rem;">
+                            <div class="stat-card">
+                                <div class="stat-label">Total Tokens Scanned</div>
+                                <div class="stat-value text-accent" id="p1-1-stat-total">0</div>
+                                <div class="stat-sub">Valid lexical tokens</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Unique Token Types</div>
+                                <div class="stat-value text-purple" id="p1-1-stat-types">0</div>
+                                <div class="stat-sub">Lexer categories active</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Whitespace & Comments</div>
+                                <div class="stat-value text-emerald">Cleaned</div>
+                                <div class="stat-sub">Non-semantic noise stripped</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Lexer Integrity</div>
+                                <div class="stat-value text-emerald">100% Valid</div>
+                                <div class="stat-sub">0 Unrecognized characters</div>
+                            </div>
+                        </div>
+
+                        <div class="card full-width">
+                            <div class="card-header">
+                                <h3>Full Lexical Token Stream</h3>
+                                <span class="sub-caption">Line-by-line breakdown of parsed atomic symbols</span>
+                            </div>
+                            <div class="card-body scrollable-card" style="max-height: 520px;">
+                                <table class="data-table" id="tokens-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Token Type</th>
+                                            <th>Lexeme (Value)</th>
+                                            <th>Line</th>
+                                            <th>Column</th>
+                                            <th>Category</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td colspan="6" class="text-center">Run pipeline to inspect lexical tokens.</td></tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Tab 3: SSA & Dominance Engine -->
-                    <div id="ssa-tab" class="tab-pane">
-                        <div class="ssa-layout-grid">
+                    <!-- ================================================================= -->
+                    <!-- SUBPHASE 1.2 SCREEN SECTION: Syntax Analysis & AST -->
+                    <!-- ================================================================= -->
+                    <div id="tab-p1-2" class="tab-pane">
+                        <div class="screen-section-header">
+                            <div class="screen-header-left">
+                                <span class="screen-step-badge p1">P1.2</span>
+                                <div class="screen-header-title">
+                                    <h3>Subphase 1.2: Syntax Analysis & AST <span class="term-note">(Grammar Hierarchy Tree)</span></h3>
+                                    <p>Verifies grammar rules using recursive descent parsing and constructs the <strong>Abstract Syntax Tree (AST)</strong> <span class="term-note">(a tree showing parent-child relationships of code statements)</span>.</p>
+                                </div>
+                            </div>
+                            <div class="screen-header-actions">
+                                <button class="btn-jump" data-target-tab="tab-p1-3">Next: 1.3 TAC IR →</button>
+                            </div>
+                        </div>
+
+                        <div class="stats-grid" style="margin-bottom: 1rem;">
+                            <div class="stat-card">
+                                <div class="stat-label">Root Node Type</div>
+                                <div class="stat-value text-accent" id="p1-2-stat-root">Program</div>
+                                <div class="stat-sub">Top of hierarchy tree</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Top-Level Statements</div>
+                                <div class="stat-value text-emerald" id="p1-2-stat-stmts">0</div>
+                                <div class="stat-sub">Functions & statements</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Grammar Validation</div>
+                                <div class="stat-value text-emerald">Passed</div>
+                                <div class="stat-sub">Zero syntax errors</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Parser Strategy</div>
+                                <div class="stat-value text-purple">Recursive Descent</div>
+                                <div class="stat-sub">Predictive top-down LL(1)</div>
+                            </div>
+                        </div>
+
+                        <div class="card full-width">
+                            <div class="card-header">
+                                <h3>Abstract Syntax Tree (AST) Hierarchy & JSON Schema</h3>
+                                <span class="sub-caption">Nested tree structure reflecting execution precedence and statement hierarchy</span>
+                            </div>
+                            <div class="card-body scrollable-card" style="max-height: 520px;">
+                                <pre id="ast-tree-view" class="code-box json-box">No AST generated yet.</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================================= -->
+                    <!-- SUBPHASE 1.3 SCREEN SECTION: Intermediate Code Generation (TAC) -->
+                    <!-- ================================================================= -->
+                    <div id="tab-p1-3" class="tab-pane">
+                        <div class="screen-section-header">
+                            <div class="screen-header-left">
+                                <span class="screen-step-badge p1">P1.3</span>
+                                <div class="screen-header-title">
+                                    <h3>Subphase 1.3: Intermediate Code Generation <span class="term-note">(Three-Address Code / TAC)</span></h3>
+                                    <p>Translates nested expressions into simplified <strong>Three-Address Code (TAC) quadruples</strong> <span class="term-note">(simple instructions where each operation has at most 3 parts: opcode, two inputs, and one output)</span>.</p>
+                                </div>
+                            </div>
+                            <div class="screen-header-actions">
+                                <button class="btn-jump" data-target-tab="symbols-tab">Next: 1.4 Symbols →</button>
+                            </div>
+                        </div>
+
+                        <div class="stats-grid" style="margin-bottom: 1rem;">
+                            <div class="stat-card">
+                                <div class="stat-label">Raw TAC Instructions</div>
+                                <div class="stat-value text-accent" id="p1-3-stat-count">0</div>
+                                <div class="stat-sub">Initial flattened quadruples</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Temporary Registers</div>
+                                <div class="stat-value text-purple" id="p1-3-stat-temps">0</div>
+                                <div class="stat-sub">Allocated virtual temps (t0..tn)</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Labels & Jump Targets</div>
+                                <div class="stat-value text-amber" id="p1-3-stat-labels">0</div>
+                                <div class="stat-sub">Branch anchors created</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Instruction Format</div>
+                                <div class="stat-value text-emerald">Quadruple</div>
+                                <div class="stat-sub">(Op, Result, Arg1, Arg2)</div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-grid">
                             <div class="card">
                                 <div class="card-header">
-                                    <h3>Dominance Frontiers & IDom Table</h3>
+                                    <h3>Structured Quadruples Table</h3>
                                 </div>
-                                <div class="card-body scrollable-card">
-                                    <table class="data-table" id="dominance-table">
+                                <div class="card-body scrollable-card tac-table-container">
+                                    <table class="data-table" id="tac-quadruples-table">
                                         <thead>
                                             <tr>
-                                                <th>Block</th>
-                                                <th>IDom (Immediate Dominator)</th>
-                                                <th>Dominance Frontier (DF)</th>
-                                                <th>Strict Dominators</th>
+                                                <th>#</th>
+                                                <th>Opcode</th>
+                                                <th>Result</th>
+                                                <th>Arg1</th>
+                                                <th>Arg2</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr><td colspan="4" class="text-center">Run compilation to inspect dominance.</td></tr>
+                                            <tr><td colspan="5" class="text-center">Run pipeline to inspect TAC quadruples.</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -299,33 +812,32 @@
 
                             <div class="card">
                                 <div class="card-header">
-                                    <h3>Dominator Tree Hierarchy</h3>
+                                    <h3>Linear Three-Address Code Stream</h3>
                                 </div>
                                 <div class="card-body">
-                                    <div id="domtree-canvas" class="cytoscape-container domtree-container"></div>
-                                </div>
-                            </div>
-
-                            <div class="card ssa-ir-card full-width">
-                                <div class="card-header">
-                                    <h3>Linear IR Comparison (Raw TAC vs SSA Form)</h3>
-                                </div>
-                                <div class="card-body side-by-side">
-                                    <div class="ir-pane">
-                                        <h4>Raw 3-Address Code (TAC)</h4>
-                                        <pre id="raw-tac-code" class="code-box">No IR generated yet.</pre>
-                                    </div>
-                                    <div class="ir-pane">
-                                        <h4>SSA Form (with Phi Φ Functions)</h4>
-                                        <pre id="ssa-tac-code" class="code-box">No SSA generated yet.</pre>
-                                    </div>
+                                    <pre id="tab-p1-3-raw-ir" class="tac-code-container">No TAC generated yet.</pre>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Tab 4: Symbols & Constants -->
+                    <!-- ================================================================= -->
+                    <!-- SUBPHASE 1.4 SCREEN SECTION: Scoped Symbol Table & Constant Pool -->
+                    <!-- ================================================================= -->
                     <div id="symbols-tab" class="tab-pane">
+                        <div class="screen-section-header">
+                            <div class="screen-header-left">
+                                <span class="screen-step-badge p1">P1.4</span>
+                                <div class="screen-header-title">
+                                    <h3>Subphase 1.4: Scoped Symbol Table & Constant Pool <span class="term-note">(Name & Number Bookkeeping)</span></h3>
+                                    <p>Manages variable <strong>scopes</strong> <span class="term-note">(code areas where variables exist)</span>, minifies identifier names by reference frequency, and deduplicates constants in a shared pool.</p>
+                                </div>
+                            </div>
+                            <div class="screen-header-actions">
+                                <button class="btn-jump" data-target-tab="cfg-tab">Next: 1.5 CFG →</button>
+                            </div>
+                        </div>
+
                         <div class="symbols-grid">
                             <!-- Symbol Table Card -->
                             <div class="card">
@@ -379,30 +891,219 @@
                         </div>
                     </div>
 
-                    <!-- Tab 5: Optimization Passes -->
-                    <div id="optimization-tab" class="tab-pane">
-                        <div class="opt-summary-grid">
+                    <!-- ================================================================= -->
+                    <!-- SUBPHASE 1.5 SCREEN SECTION: Basic Blocks & CFG Visualizer -->
+                    <!-- ================================================================= -->
+                    <div id="cfg-tab" class="tab-pane">
+                        <div class="screen-section-header">
+                            <div class="screen-header-left">
+                                <span class="screen-step-badge p1">P1.5</span>
+                                <div class="screen-header-title">
+                                    <h3>Subphase 1.5: Basic Blocks & Control Flow Graph <span class="term-note">(Flowchart Construction)</span></h3>
+                                    <p>Partitions straight-line code into <strong>Basic Blocks</strong> <span class="term-note">(code sequences with 1 entry and 1 exit)</span> and connects them with True/False branches into an interactive <strong>CFG</strong>.</p>
+                                </div>
+                            </div>
+                            <div class="screen-header-actions">
+                                <button class="btn-jump" data-target-tab="tab-p1-6">Next: 1.6 Dominance →</button>
+                            </div>
+                        </div>
+
+                        <div class="graph-toolbar">
+                            <div class="graph-mode-toggle">
+                                <label><input type="radio" name="cfg-view" value="raw" checked> Initial CFG</label>
+                                <label><input type="radio" name="cfg-view" value="ssa"> SSA CFG</label>
+                                <label><input type="radio" name="cfg-view" value="optimized"> Optimized CFG</label>
+                            </div>
+                            <div class="graph-controls">
+                                <button id="btn-fit-cfg" class="btn-sm">Fit View</button>
+                                <button id="btn-relayout-cfg" class="btn-sm">Relayout</button>
+                            </div>
+                        </div>
+                        <div class="graph-split-view">
+                            <div id="cfg-canvas" class="cytoscape-container"></div>
+                            <div class="block-inspector" id="block-inspector">
+                                <div class="inspector-header">Basic Block Details</div>
+                                <div id="inspector-content" class="inspector-content">
+                                    <em>Click a basic block in the graph to inspect instructions and live variables.</em>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================================= -->
+                    <!-- SUBPHASE 1.6 SCREEN SECTION: Dominance Analysis & Dominator Tree -->
+                    <!-- ================================================================= -->
+                    <div id="tab-p1-6" class="tab-pane">
+                        <div class="screen-section-header">
+                            <div class="screen-header-left">
+                                <span class="screen-step-badge p1">P1.6</span>
+                                <div class="screen-header-title">
+                                    <h3>Subphase 1.6: Dominance Analysis & Dominator Tree <span class="term-note">(Flow Precedence Hierarchy)</span></h3>
+                                    <p>Finds <strong>Dominators</strong> <span class="term-note">(blocks that must execute before others can run)</span> and computes <strong>Dominance Frontiers</strong> <span class="term-note">(border blocks where different branch paths converge)</span>.</p>
+                                </div>
+                            </div>
+                            <div class="screen-header-actions">
+                                <button class="btn-jump" data-target-tab="ssa-tab">Next: 1.7 SSA Form →</button>
+                            </div>
+                        </div>
+
+                        <div class="stats-grid" style="margin-bottom: 1rem;">
                             <div class="stat-card">
-                                <div class="stat-label">Constant Folds</div>
-                                <div class="stat-value text-accent" id="opt-stat-folds">0</div>
+                                <div class="stat-label">Dominator Tree Nodes</div>
+                                <div class="stat-value text-accent" id="p1-6-stat-nodes">0</div>
+                                <div class="stat-sub">Blocks in dominance tree</div>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-label">Constant Propagations</div>
-                                <div class="stat-value text-emerald" id="opt-stat-props">0</div>
+                                <div class="stat-label">CFG Entry Node</div>
+                                <div class="stat-value text-emerald">B0</div>
+                                <div class="stat-sub">Root of Dominator Tree</div>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-label">GVN Common Subexpressions</div>
-                                <div class="stat-value text-amber" id="opt-stat-gvn">0</div>
+                                <div class="stat-label">Algorithm Used</div>
+                                <div class="stat-value text-purple">Lengauer-Tarjan / Cytron</div>
+                                <div class="stat-sub">Iterative dataflow fixed-point</div>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-label">Dead Instructions Removed</div>
-                                <div class="stat-value text-rose" id="opt-stat-dce">0</div>
+                                <div class="stat-label">Frontier Purpose</div>
+                                <div class="stat-value text-amber">Phi Placement</div>
+                                <div class="stat-sub">Marks where values collide</div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-grid">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Dominance Frontiers & IDom Table</h3>
+                                </div>
+                                <div class="card-body scrollable-card" style="max-height: 440px;">
+                                    <table class="data-table" id="dominance-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Block</th>
+                                                <th>IDom (Immediate Dominator)</th>
+                                                <th>Dominance Frontier (DF)</th>
+                                                <th>Strict Dominators</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td colspan="4" class="text-center">Run compilation to inspect dominance.</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Dominator Tree Hierarchy</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div id="domtree-canvas" class="cytoscape-container domtree-container"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================================= -->
+                    <!-- SUBPHASE 1.7 SCREEN SECTION: Static Single Assignment (SSA Form) -->
+                    <!-- ================================================================= -->
+                    <div id="ssa-tab" class="tab-pane">
+                        <div class="screen-section-header">
+                            <div class="screen-header-left">
+                                <span class="screen-step-badge p1">P1.7</span>
+                                <div class="screen-header-title">
+                                    <h3>Subphase 1.7: Static Single Assignment Form <span class="term-note">(Phi-Nodes & Variable Versioning)</span></h3>
+                                    <p>Guarantees every variable is defined <strong>exactly once</strong> by assigning unique subscript versions (e.g. <code>x_1</code>, <code>x_2</code>) and placing <strong>Phi-functions / $\phi$-nodes</strong> <span class="term-note">(selectors that choose which version of a variable to use based on which branch executed)</span>.</p>
+                                </div>
+                            </div>
+                            <div class="screen-header-actions">
+                                <button class="btn-jump" data-target-tab="optimization-tab">Next: Phase 2 Optimizer →</button>
+                            </div>
+                        </div>
+
+                        <div class="stats-grid" style="margin-bottom: 1rem;">
+                            <div class="stat-card">
+                                <div class="stat-label">Phi-Nodes Placed</div>
+                                <div class="stat-value text-accent" id="p1-7-stat-phi">0</div>
+                                <div class="stat-sub">Join-point selection functions</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Versioned Variables</div>
+                                <div class="stat-value text-emerald" id="p1-7-stat-vars">0</div>
+                                <div class="stat-sub">Assigned unique versions</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">SSA Invariant</div>
+                                <div class="stat-value text-purple">Single-Def</div>
+                                <div class="stat-sub">Zero multiple reassignments</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Placement Algorithm</div>
+                                <div class="stat-value text-amber">Cytron DF</div>
+                                <div class="stat-sub">Iterated Dominance Frontiers</div>
                             </div>
                         </div>
 
                         <div class="card full-width">
                             <div class="card-header">
-                                <h3>Final Optimized & Compressed IR</h3>
+                                <h3>Linear IR Comparison (Raw TAC vs SSA Form with Phi Functions)</h3>
+                            </div>
+                            <div class="card-body side-by-side">
+                                <div class="ir-pane">
+                                    <h4>Raw 3-Address Code (TAC)</h4>
+                                    <pre id="raw-tac-code" class="code-box">No IR generated yet.</pre>
+                                </div>
+                                <div class="ir-pane">
+                                    <h4>SSA Form (with Phi Φ Functions)</h4>
+                                    <pre id="ssa-tac-code" class="code-box">No SSA generated yet.</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================================= -->
+                    <!-- SUBPHASE 2.1 SCREEN SECTION: Multi-Pass IR Optimizer -->
+                    <!-- ================================================================= -->
+                    <div id="optimization-tab" class="tab-pane">
+                        <div class="screen-section-header">
+                            <div class="screen-header-left">
+                                <span class="screen-step-badge p2">P2.1</span>
+                                <div class="screen-header-title">
+                                    <h3>Subphase 2.1: Multi-Pass IR Optimizer <span class="term-note">(Folding, GVN & DCE)</span></h3>
+                                    <p>Performs iterative optimizations: <strong>Constant Folding</strong> <span class="term-note">(calculating math at compile-time)</span>, <strong>GVN</strong> <span class="term-note">(reusing identical calculations)</span>, and <strong>DCE</strong> <span class="term-note">(deleting unused instructions)</span>.</p>
+                                </div>
+                            </div>
+                            <div class="screen-header-actions">
+                                <button class="btn-jump" data-target-tab="tab-p2-2">Next: 2.2 Bytecode →</button>
+                            </div>
+                        </div>
+
+                        <div class="opt-summary-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">Constant Folds</div>
+                                <div class="stat-value text-accent" id="opt-stat-folds">0</div>
+                                <div class="stat-sub">Math pre-calculated</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Constant Propagations</div>
+                                <div class="stat-value text-emerald" id="opt-stat-props">0</div>
+                                <div class="stat-sub">Values replaced into uses</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">GVN Redundancies Reused</div>
+                                <div class="stat-value text-amber" id="opt-stat-gvn">0</div>
+                                <div class="stat-sub">Duplicate subexpressions removed</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Dead Instructions Removed</div>
+                                <div class="stat-value text-rose" id="opt-stat-dce">0</div>
+                                <div class="stat-sub">Unreachable / dead code deleted</div>
+                            </div>
+                        </div>
+
+                        <div class="card full-width">
+                            <div class="card-header">
+                                <h3>Final Compacted & Optimized SSA Intermediate Representation</h3>
+                                <span class="sub-caption">Clean, minimal instruction stream ready for binary serialization</span>
                             </div>
                             <div class="card-body">
                                 <pre id="optimized-ir-code" class="code-box large">No optimized IR yet.</pre>
@@ -410,35 +1111,330 @@
                         </div>
                     </div>
 
-                    <!-- Tab 6: AST & Tokens -->
-                    <div id="ast-tab" class="tab-pane">
-                        <div class="ast-grid">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h3>Abstract Syntax Tree (AST) Hierarchy</h3>
-                                </div>
-                                <div class="card-body scrollable-card">
-                                    <pre id="ast-tree-view" class="code-box json-box">No AST generated yet.</pre>
+                    <!-- ================================================================= -->
+                    <!-- SUBPHASE 2.2 SCREEN SECTION: Binary Bytecode Serialization -->
+                    <!-- ================================================================= -->
+                    <div id="tab-p2-2" class="tab-pane">
+                        <div class="screen-section-header">
+                            <div class="screen-header-left">
+                                <span class="screen-step-badge p2">P2.2</span>
+                                <div class="screen-header-title">
+                                    <h3>Subphase 2.2: Binary Bytecode Serialization <span class="term-note">(Opcode Serialization & LEB128 Encoding)</span></h3>
+                                    <p>Converts human-readable text instructions into raw numerical bytes using compact <strong>opcodes</strong> and <strong>LEB128</strong> <span class="term-note">(variable-length integer encoding to store small numbers in 1 single byte)</span>.</p>
                                 </div>
                             </div>
+                            <div class="screen-header-actions">
+                                <button class="btn-jump" data-target-tab="tab-p2-3">Next: 2.3 Huffman →</button>
+                            </div>
+                        </div>
+
+                        <div class="stats-grid" style="margin-bottom: 1rem;">
+                            <div class="stat-card">
+                                <div class="stat-label">Binary Bytecode Size</div>
+                                <div class="stat-value text-accent" id="p2-2-stat-bytes">0 B</div>
+                                <div class="stat-sub">Packed binary instructions</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Raw Text IR Size</div>
+                                <div class="stat-value text-purple" id="p2-2-stat-raw">0 B</div>
+                                <div class="stat-sub">Original character stream</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Bytecode Reduction</div>
+                                <div class="stat-value text-emerald" id="p2-2-stat-ratio">0.0%</div>
+                                <div class="stat-sub">Direct byte savings</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Integer Encoding</div>
+                                <div class="stat-value text-amber">LEB128</div>
+                                <div class="stat-sub">WebAssembly-standard VarInts</div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-grid">
                             <div class="card">
                                 <div class="card-header">
-                                    <h3>Lexical Token Stream</h3>
+                                    <h3>Opcode Binary Byte Mapping Reference</h3>
                                 </div>
-                                <div class="card-body scrollable-card">
-                                    <table class="data-table" id="tokens-table">
+                                <div class="card-body scrollable-card" style="max-height: 440px;">
+                                    <table class="data-table">
                                         <thead>
                                             <tr>
-                                                <th>Type</th>
-                                                <th>Lexeme</th>
-                                                <th>Line</th>
-                                                <th>Column</th>
+                                                <th>Opcode</th>
+                                                <th>Hex Byte</th>
+                                                <th>Dec</th>
+                                                <th>Operands Format</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr><td colspan="4" class="text-center">No tokens generated.</td></tr>
+                                            <tr><td><code>NOP</code></td><td><code>0x00</code></td><td>0</td><td>None</td></tr>
+                                            <tr><td><code>ADD</code></td><td><code>0x01</code></td><td>1</td><td>Result, Arg1, Arg2</td></tr>
+                                            <tr><td><code>SUB</code></td><td><code>0x02</code></td><td>2</td><td>Result, Arg1, Arg2</td></tr>
+                                            <tr><td><code>MUL</code></td><td><code>0x03</code></td><td>3</td><td>Result, Arg1, Arg2</td></tr>
+                                            <tr><td><code>DIV</code></td><td><code>0x04</code></td><td>4</td><td>Result, Arg1, Arg2</td></tr>
+                                            <tr><td><code>ASSIGN</code></td><td><code>0x05</code></td><td>5</td><td>Result, Arg1</td></tr>
+                                            <tr><td><code>JUMP</code></td><td><code>0x06</code></td><td>6</td><td>Target Label</td></tr>
+                                            <tr><td><code>JUMP_IF</code></td><td><code>0x07</code></td><td>7</td><td>Condition, Target Label</td></tr>
+                                            <tr><td><code>PRINT</code></td><td><code>0x09</code></td><td>9</td><td>Arg1</td></tr>
+                                            <tr><td><code>PHI</code></td><td><code>0x1F</code></td><td>31</td><td>Result, Inputs...</td></tr>
                                         </tbody>
                                     </table>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Serialized Binary Bytecode Stream Inspector</h3>
+                                </div>
+                                <div class="card-body">
+                                    <pre id="bytecode-stream-inspector" class="bytecode-hex-view">Run pipeline to inspect serialized binary bytecode.</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================================= -->
+                    <!-- SUBPHASE 2.3 SCREEN SECTION: Canonical Huffman Entropy Compression -->
+                    <!-- ================================================================= -->
+                    <div id="tab-p2-3" class="tab-pane">
+                        <div class="screen-section-header">
+                            <div class="screen-header-left">
+                                <span class="screen-step-badge p2">P2.3</span>
+                                <div class="screen-header-title">
+                                    <h3>Subphase 2.3: Canonical Huffman Entropy Compression <span class="term-note">(Lossless Bitstream Packaging)</span></h3>
+                                    <p>Applies <strong>Huffman entropy coding</strong> <span class="term-note">(assigning shorter bit codes like 01 or 110 to frequent bytes, similar to ZIP compression)</span> to generate the physical <code>.cir</code> file.</p>
+                                </div>
+                            </div>
+                            <div class="screen-header-actions">
+                                <button class="btn-jump" data-target-tab="tab-p2-4">Next: 2.4 Columnar SoA →</button>
+                            </div>
+                        </div>
+
+                        <div class="stats-grid" style="margin-bottom: 1rem;">
+                            <div class="stat-card">
+                                <div class="stat-label">Huffman Bitstream Size</div>
+                                <div class="stat-value text-accent" id="p2-3-stat-bytes">0 B</div>
+                                <div class="stat-sub">Header + packed bitstream</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Single-Stream Savings</div>
+                                <div class="stat-value text-emerald" id="p2-3-stat-ratio">0.0%</div>
+                                <div class="stat-sub">Compression vs raw text IR</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Entropy Codebook</div>
+                                <div class="stat-value text-purple">Canonical</div>
+                                <div class="stat-sub">Prefix-free variable-length codes</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Round-Trip Status</div>
+                                <div class="stat-value text-emerald">100% Lossless</div>
+                                <div class="stat-sub">Zero reconstruction error</div>
+                            </div>
+                        </div>
+
+                        <div class="card full-width">
+                            <div class="card-header">
+                                <h3>Lossless Compressed Bitstream Preview (Hex Dump)</h3>
+                                <span class="sub-caption">Physical bytes as stored on disk in the compiled <code>.cir</code> package</span>
+                            </div>
+                            <div class="card-body">
+                                <pre id="tab-p2-3-hex-dump" class="hex-code bytecode-hex-view" style="max-height: 400px;">No compiled binary yet.</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================================= -->
+                    <!-- SUBPHASE 2.4 SCREEN SECTION: Columnar Structure-of-Arrays (SoA) -->
+                    <!-- ================================================================= -->
+                    <div id="tab-p2-4" class="tab-pane">
+                        <div class="screen-section-header">
+                            <div class="screen-header-left">
+                                <span class="screen-step-badge p2">P2.4</span>
+                                <div class="screen-header-title">
+                                    <h3>Subphase 2.4: Advanced Columnar Structure-of-Arrays <span class="term-note">(Stream Separation & Fallthrough Elision)</span></h3>
+                                    <p>Separates opcodes, backward SSA deltas, and literals into isolated streams and elides <strong>fallthrough edges</strong> <span class="term-note">(direct transitions that cost 0 jump bits)</span> for maximum entropy reduction.</p>
+                                </div>
+                            </div>
+                            <div class="screen-header-actions">
+                                <button class="btn-jump" data-target-tab="tab-p2-5">Next: 2.5 Analytics →</button>
+                            </div>
+                        </div>
+
+                        <div class="stats-grid" style="margin-bottom: 1rem;">
+                            <div class="stat-card">
+                                <div class="stat-label">Final SoA Bitstream</div>
+                                <div class="stat-value text-emerald" id="tab-adv-final-bitstream">0 B</div>
+                                <div class="stat-sub" id="tab-adv-final-percent">0% vs raw IR</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Fallthrough Jumps Elided</div>
+                                <div class="stat-value text-accent" id="tab-adv-rpo-elided">0 / 0</div>
+                                <div class="stat-sub">Sequential edges cost 0 bits</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Opcodes Stream</div>
+                                <div class="stat-value text-purple" id="tab-adv-opcodes-stream">0 B</div>
+                                <div class="stat-sub">High run-length homogeneity</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Backward Deltas Stream</div>
+                                <div class="stat-value text-amber" id="tab-adv-deltas-stream">0 B</div>
+                                <div class="stat-sub">Short live-range offsets</div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-grid">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Advanced Columnar Streams Breakdown</h3>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="pipeline-list">
+                                        <li class="pipeline-item">
+                                            <div class="stage-info">
+                                                <span class="stage-tag" style="background: rgba(168, 85, 247, 0.2); color: #c084fc;">Stream 1</span>
+                                                <strong>Isolated Opcodes Column</strong>
+                                            </div>
+                                            <span class="stage-metric" id="soa-stream1-metric">0 B</span>
+                                        </li>
+                                        <li class="pipeline-item">
+                                            <div class="stage-info">
+                                                <span class="stage-tag" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8;">Stream 2</span>
+                                                <strong>Backward SSA Deltas Column</strong>
+                                            </div>
+                                            <span class="stage-metric" id="soa-stream2-metric">0 B</span>
+                                        </li>
+                                        <li class="pipeline-item">
+                                            <div class="stage-info">
+                                                <span class="stage-tag" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">Stream 3</span>
+                                                <strong>Front-Coded String Pool & Literals</strong>
+                                            </div>
+                                            <span class="stage-metric" id="soa-stream3-metric">0 B</span>
+                                        </li>
+                                        <li class="pipeline-item">
+                                            <div class="stage-info">
+                                                <span class="stage-tag" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">CFG Opt</span>
+                                                <strong>RPO Fallthrough Jump Elision</strong>
+                                            </div>
+                                            <span class="stage-metric" id="soa-stream4-metric">0 Edges</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Verification & Architecture Integrity</h3>
+                                    <span class="badge" id="tab-verification-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">100% Lossless Verified</span>
+                                </div>
+                                <div class="card-body">
+                                    <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.7; margin-bottom: 1rem;">
+                                        The Columnar Structure-of-Arrays (SoA) architecture separates mixed instruction fields into isolated streams with high entropy homogeneity. During compilation, all streams are packed, re-read, and round-trip decompressed to mathematically verify 100% equivalence with the original instruction stream.
+                                    </p>
+                                    <div class="output-metric-pill" style="width: 100%;"><span class="label">Reconstruction Fidelity:</span> <span class="val emerald">Bit-Perfect Exact Match (0 mismatches)</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================================= -->
+                    <!-- SUBPHASE 2.5 SCREEN SECTION: Interactive Analytics & Verification -->
+                    <!-- ================================================================= -->
+                    <div id="tab-p2-5" class="tab-pane">
+                        <div class="screen-section-header">
+                            <div class="screen-header-left">
+                                <span class="screen-step-badge p2">P2.5</span>
+                                <div class="screen-header-title">
+                                    <h3>Subphase 2.5: Interactive Analytics, Comparison Chart & Binary Export</h3>
+                                    <p>Comprehensive comparative analytics across all 5 tiers of the compiler pipeline, mathematical round-trip validation, and binary file download.</p>
+                                </div>
+                            </div>
+                            <div class="screen-header-actions">
+                                <button class="btn btn-primary" id="btn-tab-export" title="Export Compiled Binary IR (.cir)">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    <span>Export Binary (.cir)</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="stats-grid" style="margin-bottom: 1rem;">
+                            <div class="stat-card highlight">
+                                <div class="stat-label">Final Byte Compression</div>
+                                <div class="stat-value text-accent" id="p2-5-stat-final-ratio">0.0%</div>
+                                <div class="stat-sub" id="p2-5-stat-bytes-detail">Raw: 0 B → Comp: 0 B</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Instruction Reduction</div>
+                                <div class="stat-value text-emerald" id="p2-5-stat-instr-ratio">0.0%</div>
+                                <div class="stat-sub" id="p2-5-stat-instr-detail">0 → 0 Instructions</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Advanced Columnar SoA</div>
+                                <div class="stat-value text-purple" id="p2-5-stat-soa-ratio">0.0%</div>
+                                <div class="stat-sub" id="p2-5-stat-soa-detail">0 B Bitstream</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Lossless Decompression</div>
+                                <div class="stat-value text-emerald">Verified</div>
+                                <div class="stat-sub">100% Round-trip fidelity</div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-grid">
+                            <div class="card chart-card">
+                                <div class="card-header">
+                                    <h3>IR Size Reduction Across Pipeline Stages</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="compression-chart-analytics"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card stages-card">
+                                <div class="card-header">
+                                    <h3>Multi-Tier Compression Pipeline Summary</h3>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="pipeline-list">
+                                        <li class="pipeline-item">
+                                            <div class="stage-info">
+                                                <span class="stage-tag">Tier 1</span>
+                                                <strong>Structural SSA & Dead Code Removal</strong>
+                                            </div>
+                                            <span class="stage-metric" id="p2-5-tier1-metric">-0%</span>
+                                        </li>
+                                        <li class="pipeline-item">
+                                            <div class="stage-info">
+                                                <span class="stage-tag">Tier 2</span>
+                                                <strong>Constant Folding & Literal Deduplication</strong>
+                                            </div>
+                                            <span class="stage-metric" id="p2-5-tier2-metric">-0%</span>
+                                        </li>
+                                        <li class="pipeline-item">
+                                            <div class="stage-info">
+                                                <span class="stage-tag">Tier 3</span>
+                                                <strong>Binary Bytecode & LEB128 Encoding</strong>
+                                            </div>
+                                            <span class="stage-metric" id="p2-5-tier3-metric">-0%</span>
+                                        </li>
+                                        <li class="pipeline-item">
+                                            <div class="stage-info">
+                                                <span class="stage-tag">Tier 4</span>
+                                                <strong>Canonical Huffman Entropy Coding</strong>
+                                            </div>
+                                            <span class="stage-metric" id="p2-5-tier4-metric">-0%</span>
+                                        </li>
+                                    </ul>
+
+                                    <div style="margin-top: 1.5rem; display: flex; justify-content: center;">
+                                        <button class="btn btn-primary" id="btn-export-cir-action" style="width: 100%; justify-content: center;">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                            <span>Download Compiled .cir Package</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

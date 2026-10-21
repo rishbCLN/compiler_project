@@ -216,12 +216,12 @@ def test_tabs_keyboard_arrow_navigation(page):
     first = page.query_selector('.tab-btn')
     first.focus()
     page.keyboard.press("ArrowRight")
-    # Arrow key should move selection to the CFG tab and reveal its panel.
+    # Arrow key moves selection to the first sequential subphase tab (ast-tab / P1.1) and reveals its panel.
     active_id = page.evaluate("() => document.activeElement.getAttribute('data-tab')")
-    assert active_id == "cfg-tab"
-    assert page.get_attribute('#tab-cfg-tab', "aria-selected") == "true"
+    assert active_id == "ast-tab"
+    assert page.get_attribute('#tab-ast-tab', "aria-selected") == "true"
     assert page.is_hidden("#overview-tab")
-    assert page.is_visible("#cfg-tab")
+    assert page.is_visible("#ast-tab")
 
 
 def test_branch_edges_have_non_color_labels(page):
@@ -244,3 +244,74 @@ def test_branch_edges_have_non_color_labels(page):
         "() => window.__cfgViz.cy.edges().map(e => e.style('label'))"
     )
     assert "T" in labels and "F" in labels
+
+
+# ---------------------------------------------------------------- Sequential Pipeline Verification
+
+def test_sequential_pipeline_subphases_populated(page):
+    # Verify all 12 subphases have their live output boxes populated with real metrics
+    subphase_ids = [
+        "step-output-1-1",  # Lexical tokens
+        "step-output-1-2",  # AST
+        "step-output-1-3",  # Raw TAC
+        "step-output-1-4",  # Symbols & Constants
+        "step-output-1-5",  # CFG Basic Blocks
+        "step-output-1-6",  # Dominance IDom
+        "step-output-1-7",  # SSA Form
+        "step-output-2-1",  # Multi-Pass Optimizer
+        "step-output-2-2",  # Binary Bytecode
+        "step-output-2-3",  # Canonical Huffman
+        "step-output-2-4",  # Columnar SoA
+        "step-output-2-5",  # Analytics & Export
+    ]
+
+    for sid in subphase_ids:
+        text = page.text_content(f"#{sid}").strip()
+        assert len(text) > 0, f"Subphase container #{sid} is empty!"
+        assert "Run pipeline" not in text, f"Subphase container #{sid} still shows uncompiled placeholder!"
+
+    # Specific subphase content checks
+    assert "Total Tokens:" in page.text_content("#step-output-1-1")
+    assert "Root Node:" in page.text_content("#step-output-1-2")
+    assert "Raw TAC Instructions:" in page.text_content("#step-output-1-3")
+    assert "Symbols Minified:" in page.text_content("#step-output-1-4")
+    assert "Basic Blocks:" in page.text_content("#step-output-1-5")
+    assert "Dominator Tree Nodes:" in page.text_content("#step-output-1-6")
+    assert "Phi" in page.text_content("#step-output-1-7")
+    assert "Constant Folds:" in page.text_content("#step-output-2-1")
+    assert "Bytecode Output:" in page.text_content("#step-output-2-2")
+    assert "Single-Stream Bitstream:" in page.text_content("#step-output-2-3")
+    assert "Final SoA Bitstream:" in page.text_content("#step-output-2-4")
+    assert "Lossless Decompression Integrity" in page.text_content("#step-output-2-5") or "Verified" in page.text_content("#step-output-2-5")
+
+
+def test_sequential_pipeline_filter_buttons(page):
+    # Test Phase 1 filter hides Phase 2 cards
+    page.click('.filter-btn[data-filter="phase1"]')
+    assert page.is_visible("#step-1-1")
+    assert page.is_visible("#step-1-7")
+    assert page.is_hidden("#step-2-1")
+    assert page.is_hidden("#step-2-5")
+
+    # Test Phase 2 filter hides Phase 1 cards
+    page.click('.filter-btn[data-filter="phase2"]')
+    assert page.is_hidden("#step-1-1")
+    assert page.is_hidden("#step-1-7")
+    assert page.is_visible("#step-2-1")
+    assert page.is_visible("#step-2-5")
+
+    # Test All filter shows all cards
+    page.click('.filter-btn[data-filter="all"]')
+    assert page.is_visible("#step-1-1")
+    assert page.is_visible("#step-2-1")
+
+
+def test_sequential_pipeline_jump_button(page):
+    # Clicking jump button on CFG step card switches to CFG tab
+    jump_btn = page.query_selector('#step-1-5 .btn-jump')
+    assert jump_btn is not None
+    jump_btn.click()
+    page.wait_for_selector("#cfg-tab.active", timeout=5000)
+    assert page.is_visible("#cfg-tab")
+    assert page.is_hidden("#overview-tab")
+

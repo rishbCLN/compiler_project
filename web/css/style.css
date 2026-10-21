@@ -922,3 +922,128 @@ button:focus-visible {
         scroll-behavior: auto !important;
     }
 }
+
+/* ==========================================================================
+   Subphase Dedicated Screen Section Banners & Tabs Styling
+   ========================================================================== */
+
+.tabs-phase-tag {
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 0.15rem 0.45rem;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0.25rem;
+    flex-shrink: 0;
+}
+
+.tabs-phase-tag.p1 {
+    background: rgba(14, 165, 233, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(14, 165, 233, 0.35);
+}
+
+.tabs-phase-tag.p2 {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+.tabs-divider-vertical {
+    width: 1px;
+    height: 22px;
+    background: var(--border-color);
+    margin: 0 0.35rem;
+    flex-shrink: 0;
+}
+
+.screen-section-header {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95));
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1.1rem 1.4rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow-subtle);
+}
+
+.screen-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.screen-step-badge {
+    font-size: 0.82rem;
+    font-weight: 800;
+    padding: 0.35rem 0.7rem;
+    border-radius: var(--radius-sm);
+    letter-spacing: 0.03em;
+}
+
+.screen-step-badge.p1 {
+    background: rgba(14, 165, 233, 0.2);
+    color: #38bdf8;
+    border: 1px solid rgba(14, 165, 233, 0.4);
+}
+
+.screen-step-badge.p2 {
+    background: rgba(168, 85, 247, 0.2);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.screen-header-title h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.15rem;
+}
+
+.screen-header-title p {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.screen-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tac-table-container {
+    max-height: 440px;
+    overflow-y: auto;
+}
+
+.tac-code-container {
+    height: 440px;
+    overflow-y: auto;
+    font-family: var(--font-code);
+    font-size: 0.84rem;
+    line-height: 1.6;
+    padding: 1rem;
+    background: #090d16;
+    border-radius: var(--radius-sm);
+    color: #38bdf8;
+}
+
+.bytecode-hex-view {
+    font-family: var(--font-code);
+    font-size: 0.86rem;
+    background: #090d16;
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+    color: #a7f3d0;
+    letter-spacing: 0.06em;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    max-height: 380px;
+    overflow-y: auto;
+}
+
