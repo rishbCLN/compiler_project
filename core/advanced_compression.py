@@ -14,7 +14,9 @@ import struct
 from collections import Counter
 from core.ir import Instruction, Opcode
 from core.cfg import ControlFlowGraph, BasicBlock
-from core.binary_compression import LEB128, HuffmanCompressor
+from core.binary_compression import LEB128, HuffmanCompressor, RegisterPackedBytecodeEmitter, RegisterPackedBytecodeDecoder
+from core.liveness import LivenessAnalyzer
+from core.register_allocator import RegisterInterferenceGraph, ChordalRegisterAllocator, RegisterCompactor
 
 
 class FrontCodedStringPool:
@@ -527,6 +529,36 @@ class AdvancedIRCompressionEngine:
         assert reconstructed == _strip_line(encoded_instructions), \
             "Columnar SoA instruction round-trip mismatch (jump targets / phi preds lost)!"
 
+        # 6. Chordal Register Allocation via Maximum Cardinality Search (Hack's Theorem)
+        target_cfg = cfg
+        target_instructions = optimized_instructions
+        liveness = LivenessAnalyzer(target_cfg)
+        liveness.analyze()
+        if len(liveness.all_variables) == 0 and raw_instructions:
+            target_cfg = ControlFlowGraph.build(raw_instructions)
+            target_instructions = raw_instructions
+            liveness = LivenessAnalyzer(target_cfg)
+            liveness.analyze()
+
+        rig = RegisterInterferenceGraph.build_from_liveness(liveness)
+        allocator = ChordalRegisterAllocator(rig)
+        allocation = allocator.allocate()
+        compacted_instructions = RegisterCompactor.compact_instructions(target_instructions, allocation)
+        reg_summary = RegisterCompactor.get_summary(liveness.all_variables, allocation)
+
+        # 7. 4-Bit Nibble Register-Packed Bytecode Serialization
+        packed_emitter = RegisterPackedBytecodeEmitter()
+        packed_bytecode = packed_emitter.serialize_program(compacted_instructions, k_registers=allocator.k_registers)
+        packed_bytecode_bytes = len(packed_bytecode)
+        packed_huffman = HuffmanCompressor.compress(bytes(packed_bytecode))
+        packed_huffman_bytes = len(packed_huffman)
+
+        # Lossless round-trip of packed bytecode
+        decoded_packed, _ = RegisterPackedBytecodeDecoder.decode_program(
+            bytes(packed_bytecode), label_map=packed_emitter.id_to_label
+        )
+        assert len(decoded_packed) == len(compacted_instructions), "Register-packed bytecode instruction count mismatch!"
+
         # Compute Comparative Metrics
         raw_text = "\n".join(str(i) for i in raw_instructions)
         raw_text_bytes = len(raw_text.encode('utf-8'))
@@ -536,11 +568,87 @@ class AdvancedIRCompressionEngine:
         overall_compression_percent = ((raw_text_bytes - final_bitstream_bytes) / raw_text_bytes * 100) if raw_text_bytes else 0.0
         soa_density_percent = ((raw_text_bytes - soa_container_bytes) / raw_text_bytes * 100) if raw_text_bytes else 0.0
         symbol_compression_percent = ((raw_symbol_bytes - front_coded_bytes) / raw_symbol_bytes * 100) if raw_symbol_bytes else 0.0
+        packed_savings_percent = ((raw_text_bytes - packed_bytecode_bytes) / raw_text_bytes * 100) if raw_text_bytes else 0.0
+
+        # Build rich columnar stream breakdown for inspection
+        column_records = []
+        for idx, item in enumerate(encoded_instructions):
+            op = item["op"]
+            op_code_hex = f"0x{ColumnarBytecodeSerializer.OPCODE_MAP.get(op, 0):02X}"
+            instr_str = str(optimized_instructions[idx]) if idx < len(optimized_instructions) else f"{op.name}"
+
+            if item.get("is_phi"):
+                phi_deltas = item.get("phi_deltas", {})
+                flag_str = f"Phi ({len(phi_deltas)} incoming edges)"
+                delta_str = ", ".join(f"{pred}: Δ={d}" for pred, d in phi_deltas.items())
+                imm_str = ", ".join(str(p) for p in phi_deltas.keys())
+            else:
+                flags = []
+                deltas = []
+                imms = []
+                if item.get("arg1_delta") is not None:
+                    flags.append("Arg1: Δ")
+                    deltas.append(f"Arg1 Δ={item['arg1_delta']}")
+                elif item.get("arg1_raw") is not None:
+                    flags.append("Arg1: Literal")
+                    imms.append(f"Arg1={item['arg1_raw']}")
+
+                if item.get("arg2_delta") is not None:
+                    flags.append("Arg2: Δ")
+                    deltas.append(f"Arg2 Δ={item['arg2_delta']}")
+                elif item.get("arg2_raw") is not None:
+                    flags.append("Arg2: Literal")
+                    imms.append(f"Arg2={item['arg2_raw']}")
+
+                if item.get("result_label") is not None:
+                    flags.append("Res: Label")
+                    imms.append(f"Res={item['result_label']}")
+
+                flag_str = ", ".join(flags) if flags else "No Operands"
+                delta_str = ", ".join(deltas) if deltas else "—"
+                imm_str = ", ".join(imms) if imms else "—"
+
+            column_records.append({
+                "index": idx + 1,
+                "instruction": instr_str,
+                "opcode_name": op.name,
+                "opcode_hex": op_code_hex,
+                "flags_desc": flag_str,
+                "delta_desc": delta_str,
+                "immediate_desc": imm_str,
+            })
+
+        opcodes_hex = " ".join(f"{b:02X}" for b in columns["opcodes"][:64])
+        flags_hex = " ".join(f"{b:02X}" for b in columns["flags"][:64])
+        deltas_hex = " ".join(f"{b:02X}" for b in columns["deltas"][:64]) if columns["deltas"] else "— (0 bytes)"
+        immediates_hex = " ".join(f"{b:02X}" for b in columns["immediates"][:64]) if columns["immediates"] else "— (0 bytes)"
+        front_coded_hex = " ".join(f"{b:02X}" for b in front_coded_symbols[:64])
+        soa_hex = " ".join(f"{b:02X}" for b in soa_container[:64]) + ("..." if len(soa_container) > 64 else "")
+
+        rpo_details = []
+        for idx, b_id in enumerate(rpo_blocks):
+            meta = edge_metadata.get(b_id, {})
+            rpo_details.append({
+                "order": idx + 1,
+                "block_id": b_id,
+                "is_fallthrough": meta.get("has_implicit_fallthrough", False),
+                "jump_deltas": meta.get("jump_deltas", []),
+            })
 
         return {
             "rpo_blocks": rpo_blocks,
+            "rpo_details": rpo_details,
             "elided_fallthrough_edges": elided_edges_count,
             "total_cfg_blocks": len(rpo_blocks),
+            "column_records": column_records,
+            "stream_hex": {
+                "opcodes": opcodes_hex,
+                "flags": flags_hex,
+                "deltas": deltas_hex,
+                "immediates": immediates_hex,
+                "front_coded_symbols": front_coded_hex,
+                "container_sample": soa_hex,
+            },
             "columnar_sizes": {
                 "opcodes_bytes": len(columns["opcodes"]),
                 "flags_bytes": len(columns["flags"]),
@@ -557,4 +665,20 @@ class AdvancedIRCompressionEngine:
             "final_advanced_compression_percent": round(overall_compression_percent, 2),
             "is_entropy_packed": is_entropy_packed,
             "verification_status": "Lossless Round-Trip Verified (full instruction reconstruction)",
+            "register_allocation": {
+                "physical_registers": allocator.k_registers,
+                "virtual_variables": reg_summary["virtual_variable_count"],
+                "reduction_percent": reg_summary["reduction_percentage"],
+                "max_clique_size": allocator.max_clique_size,
+                "allocation_map": reg_summary["allocation_map"],
+                "compacted_instructions": [i.to_dict() for i in compacted_instructions],
+                "compacted_text": "\n".join(str(i) for i in compacted_instructions),
+                "packed_bytecode_bytes": packed_bytecode_bytes,
+                "packed_huffman_bytes": packed_huffman_bytes,
+                "packed_savings_percent": round(packed_savings_percent, 2),
+                "rig_stats": rig.get_stats(),
+                "rig_elements": rig.to_cytoscape_elements(allocation),
+                "live_intervals": liveness.intervals,
+                "liveness_dict": liveness.to_dict(),
+            },
         }

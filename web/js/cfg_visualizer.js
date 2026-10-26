@@ -30,20 +30,22 @@ class GraphVisualizer {
             container: this.container,
             boxSelectionEnabled: false,
             autounselectify: false,
+            minZoom: 0.2,
+            maxZoom: 2.0,
             style: [
                 // Node Styles
                 {
                     selector: 'node',
                     style: {
                         'shape': 'round-rectangle',
-                        'background-color': '#1e293b',
-                        'border-width': 2,
-                        'border-color': '#38bdf8',
-                        'border-opacity': 0.8,
+                        'background-color': '#18181b',
+                        'border-width': 1.5,
+                        'border-color': 'rgba(255, 255, 255, 0.18)',
+                        'border-opacity': 1.0,
                         'label': 'data(label)',
-                        'color': '#f8fafc',
+                        'color': '#ffffff',
                         'font-size': '12px',
-                        'font-family': 'Fira Code, monospace',
+                        'font-family': 'SF Mono, Menlo, monospace',
                         'text-valign': 'center',
                         'text-halign': 'center',
                         'padding': '16px',
@@ -52,31 +54,31 @@ class GraphVisualizer {
                         'text-wrap': 'wrap',
                         'text-max-width': '220px',
                         'transition-property': 'border-color, background-color, transform',
-                        'transition-duration': '0.15s'
+                        'transition-duration': '0.12s'
                     }
                 },
                 {
                     selector: 'node[type = "entry"]',
                     style: {
-                        'border-color': '#06b6d4',
-                        'border-width': 3,
-                        'background-color': '#0c4a6e',
+                        'border-color': '#0a84ff',
+                        'border-width': 2.5,
+                        'background-color': 'rgba(10, 132, 255, 0.15)',
                     }
                 },
                 {
                     selector: 'node[type = "exit"]',
                     style: {
-                        'border-color': '#10b981',
-                        'border-width': 3,
-                        'background-color': '#064e3b',
+                        'border-color': '#30d158',
+                        'border-width': 2.5,
+                        'background-color': 'rgba(48, 209, 88, 0.15)',
                     }
                 },
                 {
                     selector: 'node:selected',
                     style: {
-                        'border-color': '#f59e0b',
-                        'border-width': 4,
-                        'background-color': '#334155',
+                        'border-color': '#ff9f0a',
+                        'border-width': 3,
+                        'background-color': 'rgba(255, 159, 10, 0.2)',
                     }
                 },
                 // Edge Styles
@@ -85,26 +87,26 @@ class GraphVisualizer {
                     style: {
                         'curve-style': 'bezier',
                         'target-arrow-shape': 'triangle',
-                        'target-arrow-color': '#64748b',
-                        'line-color': '#64748b',
+                        'target-arrow-color': '#545458',
+                        'line-color': '#545458',
                         'width': 2,
                         'arrow-scale': 1.2,
                         'label': 'data(label)',
                         'font-size': '10px',
-                        'font-family': 'Inter, sans-serif',
-                        'color': '#94a3b8',
-                        'text-background-color': '#0b0f19',
-                        'text-background-opacity': 0.8,
-                        'text-background-padding': '2px',
+                        'font-family': '-apple-system, BlinkMacSystemFont, sans-serif',
+                        'color': '#8e8e93',
+                        'text-background-color': '#1c1c1e',
+                        'text-background-opacity': 0.95,
+                        'text-background-padding': '3px',
                         'text-background-shape': 'roundrectangle',
                     }
                 },
                 {
                     selector: 'edge[edge_type = "branch_true"]',
                     style: {
-                        'line-color': '#10b981',
-                        'target-arrow-color': '#10b981',
-                        'color': '#10b981',
+                        'line-color': '#30d158',
+                        'target-arrow-color': '#30d158',
+                        'color': '#30d158',
                         'width': 2.5,
                         // Non-color cue (WCAG 1.4.1): a text glyph so the
                         // true/false meaning survives color-blind rendering.
@@ -117,9 +119,9 @@ class GraphVisualizer {
                 {
                     selector: 'edge[edge_type = "branch_false"]',
                     style: {
-                        'line-color': '#f43f5e',
-                        'target-arrow-color': '#f43f5e',
-                        'color': '#f43f5e',
+                        'line-color': '#ff453a',
+                        'target-arrow-color': '#ff453a',
+                        'color': '#ff453a',
                         'width': 2.5,
                         'line-style': 'dashed',
                         // Non-color cue: dashed line + 'F' glyph distinguish the
@@ -132,18 +134,18 @@ class GraphVisualizer {
                 {
                     selector: 'edge[edge_type = "jump"]',
                     style: {
-                        'line-color': '#38bdf8',
-                        'target-arrow-color': '#38bdf8',
+                        'line-color': '#0a84ff',
+                        'target-arrow-color': '#0a84ff',
                         'line-style': 'dashed',
-                        'color': '#38bdf8',
+                        'color': '#0a84ff',
                     }
                 },
                 {
                     selector: 'edge[label = "idom"]',
                     style: {
-                        'line-color': '#a855f7',
-                        'target-arrow-color': '#a855f7',
-                        'color': '#c084fc',
+                        'line-color': '#bf5af2',
+                        'target-arrow-color': '#bf5af2',
+                        'color': '#bf5af2',
                         'width': 2.5,
                     }
                 }
@@ -195,7 +197,11 @@ class GraphVisualizer {
         // before fitting, otherwise a graph first laid out while its tab pane was
         // display:none renders at 0x0 and fit() alone cannot recover it.
         this.cy.resize();
-        this.cy.fit(undefined, 30);
+        this.cy.fit(undefined, 40);
+        if (this.cy.zoom() > 1.25) {
+            this.cy.zoom(1.0);
+            this.cy.center();
+        }
     }
 
     fit() {
@@ -203,7 +209,11 @@ class GraphVisualizer {
             // resize() re-reads the container dimensions; required when the tab
             // becomes visible for the first time after being display:none.
             this.cy.resize();
-            this.cy.fit(undefined, 30);
+            this.cy.fit(undefined, 40);
+            if (this.cy.zoom() > 1.25) {
+                this.cy.zoom(1.0);
+                this.cy.center();
+            }
         }
     }
 
@@ -248,3 +258,133 @@ function getDomTreeVisualizer() {
     }
     return domTreeVisualizerInstance;
 }
+
+class RigVisualizer {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.cy = null;
+        this.currentElements = [];
+    }
+
+    init() {
+        if (!this.container || typeof cytoscape === 'undefined') return;
+
+        this.cy = cytoscape({
+            container: this.container,
+            boxSelectionEnabled: false,
+            autounselectify: false,
+            minZoom: 0.2,
+            maxZoom: 3.0,
+            style: [
+                {
+                    selector: 'node',
+                    style: {
+                        'shape': 'ellipse',
+                        'background-color': 'data(color)',
+                        'border-width': 2,
+                        'border-color': 'rgba(255, 255, 255, 0.45)',
+                        'label': 'data(label)',
+                        'color': '#ffffff',
+                        'font-size': '11px',
+                        'font-family': 'SF Mono, Menlo, monospace',
+                        'font-weight': '600',
+                        'text-valign': 'center',
+                        'text-halign': 'center',
+                        'width': 54,
+                        'height': 54,
+                        'text-wrap': 'wrap',
+                        'text-max-width': '100px',
+                        'text-outline-color': '#09090b',
+                        'text-outline-width': 2,
+                        'transition-property': 'border-color, transform',
+                        'transition-duration': '0.15s'
+                    }
+                },
+                {
+                    selector: 'node:selected',
+                    style: {
+                        'border-color': '#ffffff',
+                        'border-width': 4,
+                        'border-opacity': 1.0,
+                        'shadow-blur': 12,
+                        'shadow-color': 'data(color)',
+                        'shadow-opacity': 0.8
+                    }
+                },
+                {
+                    selector: 'edge',
+                    style: {
+                        'curve-style': 'straight',
+                        'line-color': 'rgba(255, 255, 255, 0.22)',
+                        'width': 1.8,
+                        'opacity': 0.85
+                    }
+                },
+                {
+                    selector: 'edge:selected',
+                    style: {
+                        'line-color': '#f59e0b',
+                        'width': 3,
+                        'opacity': 1.0
+                    }
+                }
+            ],
+            layout: {
+                name: 'concentric',
+                concentric: function(node) {
+                    return node.data('degree') || 1;
+                },
+                levelWidth: function() { return 2; },
+                padding: 40
+            }
+        });
+    }
+
+    render(elements) {
+        if (!this.cy) this.init();
+        if (!this.cy) return;
+
+        this.currentElements = elements || [];
+        this.cy.elements().remove();
+
+        if (this.currentElements.length > 0) {
+            this.cy.add(this.currentElements);
+            this.layout();
+        }
+    }
+
+    layout() {
+        if (!this.cy) return;
+        const layout = this.cy.layout({
+            name: 'concentric',
+            concentric: function(node) {
+                return node.data('degree') || 1;
+            },
+            levelWidth: function() { return 2; },
+            padding: 40,
+            animate: true,
+            animationDuration: 400
+        });
+        layout.run();
+        setTimeout(() => this.fit(), 420);
+    }
+
+    fit() {
+        if (!this.cy) return;
+        this.cy.resize();
+        this.cy.fit(undefined, 40);
+    }
+}
+
+let rigVisualizerInstance = null;
+
+function getRigVisualizer() {
+    if (!rigVisualizerInstance) {
+        rigVisualizerInstance = new RigVisualizer('rig-canvas');
+        rigVisualizerInstance.init();
+        // Expose for headless tests and studio inspector
+        window.__rigViz = rigVisualizerInstance;
+    }
+    return rigVisualizerInstance;
+}
+

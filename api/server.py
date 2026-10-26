@@ -153,6 +153,30 @@ def compile_code(req: CompileRequest):
             symbol_names=symbol_names
         )
 
+        # 11. Multi-Algorithm Mainstream Compression Comparison Benchmark
+        from core.compression_benchmarks import CompressionBenchmarkSuite
+        emitter = BytecodeEmitter(symbol_table, constant_pool)
+        bytecode_bytes = bytes(emitter.serialize_program(opt_instructions))
+        raw_text_bytes = len("\n".join(str(i) for i in initial_raw_instructions).encode('utf-8'))
+        compression_comparison = CompressionBenchmarkSuite.run_benchmark(
+            target_payload=bytecode_bytes,
+            raw_ir_text_bytes=raw_text_bytes,
+            custom_metrics=advanced_metrics
+        )
+
+        # 12. Decompression Phase & Lossless Semantic Fidelity Verification
+        from core.decompression import DecompressionEngine
+        huffman_bitstream = HuffmanCompressor.compress(bytecode_bytes)
+        decompression_result = DecompressionEngine.run(
+            huffman_bitstream=huffman_bitstream,
+            raw_bytecode=bytecode_bytes,
+            original_instructions=opt_instructions,
+            emitter=emitter,
+            allocator_label_map=emitter.id_to_label,
+            decompression_matrix=compression_comparison.get("decompression_matrix", []),
+            decompression_summary=compression_comparison.get("decompression_summary", {})
+        )
+
         return {
             "success": True,
             "tokens": [t.to_dict() for t in tokens if t.type.name != "EOF"],
@@ -188,6 +212,9 @@ def compile_code(req: CompileRequest):
             "constant_pool": constant_pool.to_dict(),
             "compression_metrics": pipeline_metrics,
             "advanced_compression": advanced_metrics,
+            "register_allocation": advanced_metrics.get("register_allocation", {}),
+            "compression_comparison": compression_comparison,
+            "decompression": decompression_result,
         }
 
     except (LexerError, ParserError) as e:

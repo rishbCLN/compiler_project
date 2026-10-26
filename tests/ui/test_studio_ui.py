@@ -27,7 +27,7 @@ def browser():
 def page(browser, live_server):
     ctx = browser.new_context(viewport={"width": 1400, "height": 900})
     pg = ctx.new_page()
-    pg.goto(live_server, wait_until="networkidle")
+    pg.goto(live_server, wait_until="domcontentloaded")
     # Click Run Pipeline and wait for compilation to complete
     pg.click("#btn-compile")
     pg.wait_for_function(
@@ -48,7 +48,7 @@ def _switch_tab(page, data_tab):
 def test_initial_page_load_awaits_run_pipeline(browser, live_server):
     ctx = browser.new_context(viewport={"width": 1400, "height": 900})
     pg = ctx.new_page()
-    pg.goto(live_server, wait_until="networkidle")
+    pg.goto(live_server, wait_until="domcontentloaded")
     # Editor is loaded with sample code, but has NOT run compilation yet
     assert len(pg.input_value("#source-code").strip()) > 0
     assert pg.text_content("#compiler-status").strip() == "Ready"
@@ -182,8 +182,10 @@ def test_fifth_chart_bar_is_advanced_soa(page):
         "() => compressionChartInstance "
         "? compressionChartInstance.data.labels : []"
     )
-    assert len(labels) == 5
+    assert len(labels) >= 5
     assert "Advanced SoA" in labels[4]
+    if len(labels) >= 6:
+        assert "Winner" in labels[5]
 
 
 def test_constant_pool_net_savings_summary(page):
@@ -314,4 +316,163 @@ def test_sequential_pipeline_jump_button(page):
     page.wait_for_selector("#cfg-tab.active", timeout=5000)
     assert page.is_visible("#cfg-tab")
     assert page.is_hidden("#overview-tab")
+
+
+def test_register_allocation_tab_renders_rig_nodes(page):
+    _switch_tab(page, "tab-p2-registers")
+    page.wait_for_selector("#tab-p2-registers.active", timeout=5000)
+    assert page.is_visible("#tab-p2-registers")
+
+    # Wait for the exposed Cytoscape RIG instance to carry rendered nodes
+    page.wait_for_function(
+        "() => window.__rigViz && window.__rigViz.cy "
+        "&& window.__rigViz.cy.nodes().length > 0",
+        timeout=10000,
+    )
+    node_count = page.evaluate("() => window.__rigViz.cy.nodes().length")
+    assert node_count > 0
+
+    # Verify stat cards and table populated
+    phys_regs = page.text_content("#reg-stat-phys").strip()
+    assert int(phys_regs) > 0
+    assert "Optimal" in page.text_content("#reg-stat-clique")
+
+    # Verify table has rows
+    rows = page.query_selector_all("#register-allocation-table tbody tr")
+    assert len(rows) > 0
+
+
+def test_compression_benchmark_table_renders(page):
+    _switch_tab(page, "tab-p2-bench")
+    page.wait_for_selector("#tab-p2-bench.active", timeout=5000)
+    assert page.is_visible("#tab-p2-bench")
+
+    # Verify table body has multiple algorithm rows
+    rows = page.query_selector_all("#compression-table-body tr")
+    assert len(rows) >= 10
+
+    # Verify baseline row exists
+    baseline_row = page.query_selector("#compression-table-body tr.baseline-row")
+    assert baseline_row is not None
+    assert "BASELINE" in baseline_row.text_content()
+
+    # Verify filter button interaction
+    page.click('.bench-filter-btn[data-filter="modern"]')
+    filtered_rows = page.query_selector_all("#compression-table-body tr")
+    assert len(filtered_rows) > 0
+    assert len(filtered_rows) < len(rows)
+
+
+def test_decompression_tab_renders_lossless_verdict(page):
+    _switch_tab(page, "tab-p2-decompress")
+    page.wait_for_selector("#tab-p2-decompress.active", timeout=5000)
+    assert page.is_visible("#tab-p2-decompress")
+
+    # Verify Lossless Hero Banner
+    banner_text = page.text_content("#dec-verdict-badge").strip()
+    assert "LOSSLESS" in banner_text
+
+    stat_lossless = page.text_content("#dec-stat-match-rate").strip()
+    assert "100%" in stat_lossless
+
+    # Verify side-by-side diff table rows
+    diff_rows = page.query_selector_all("#dec-diff-table-body tr")
+    assert len(diff_rows) > 0
+    match_badges = page.query_selector_all("#dec-diff-table-body .diff-verdict-badge.match")
+    assert len(match_badges) > 0
+
+
+def test_decompression_matrix_table_renders_all_algorithms(page):
+    _switch_tab(page, "tab-p2-decompress")
+    page.wait_for_selector("#tab-p2-decompress.active", timeout=5000)
+
+    # 1. Verify summary cards populated
+    fastest_card = page.text_content("#dec-summary-fastest").strip()
+    assert fastest_card != "..." and len(fastest_card) > 0
+
+    tp_card = page.text_content("#dec-summary-throughput").strip()
+    assert tp_card != "..." and ("MB/s" in tp_card or "KB/s" in tp_card)
+
+    asym_card = page.text_content("#dec-summary-asym").strip()
+    assert asym_card != "..." and len(asym_card) > 0
+
+    sha_card = page.text_content("#dec-summary-sha").strip()
+    assert "12 / 12" in sha_card or "Verified" in sha_card
+
+    # 2. Verify Cross-Paradigm Decompression Benchmark table rows
+    matrix_rows = page.query_selector_all("#dec-matrix-table-body tr")
+    assert len(matrix_rows) >= 10, f"Expected at least 10 algorithm rows in decompression matrix, got {len(matrix_rows)}"
+
+    # 3. Check rank badges and SHA-256 match badges in decompression table
+    for row in matrix_rows:
+        text = row.text_content()
+        assert "✓" in text or "Drift" in text, f"Row missing SHA-256 check or drift badge: {text}"
+        assert "Lossless" in text or "0 Drift" in text, f"Row missing lossless badge: {text}"
+
+
+def test_columnar_soa_tab_renders_and_is_visible(page):
+    _switch_tab(page, "tab-p2-4")
+    page.wait_for_selector("#tab-p2-4.active", timeout=5000)
+    assert page.is_visible("#tab-p2-4")
+
+    # Verify stat cards populated
+    bytes_text = page.text_content("#tab-adv-final-bitstream").strip()
+    assert bytes_text.endswith("B") and bytes_text != "0 B"
+
+    # Verify instruction decomposition table is visible and has rows
+    assert page.is_visible("#soa-instruction-table")
+    rows = page.query_selector_all("#soa-instruction-table-body tr")
+    assert len(rows) > 0, "Expected instruction decomposition rows in Columnar SoA table"
+
+    # Verify hex dump inspector populated
+    opcodes_hex = page.text_content("#soa-hex-opcodes").strip()
+    assert opcodes_hex != "(run pipeline)" and len(opcodes_hex) > 0
+
+def test_analytics_tab_renders_compression_champion_and_podium(page):
+    _switch_tab(page, "tab-p2-5")
+    page.wait_for_selector("#tab-p2-5.active", timeout=5000)
+    assert page.is_visible("#tab-p2-5")
+
+    # 1. Verify highlight champion card reflects dynamic winner, not just baseline Huffman
+    final_ratio = page.text_content("#p2-5-stat-final-ratio").strip()
+    assert final_ratio != "0.0%" and "%" in final_ratio
+
+    winner_badge = page.text_content("#p2-5-winner-badge").strip()
+    assert len(winner_badge) > 0 and winner_badge != "Winner"
+
+    bytes_detail = page.text_content("#p2-5-stat-bytes-detail").strip()
+    assert "Winner" in bytes_detail and "Raw:" in bytes_detail
+
+    # 2. Verify Baseline Huffman Reference is preserved for academic comparison
+    huff_ratio = page.text_content("#p2-5-stat-huffman-ratio").strip()
+    assert huff_ratio != "0.0%" and "%" in huff_ratio
+
+    # 3. Verify Tier 5 Benchmark Champion in Pipeline Summary
+    t5_metric = page.text_content("#p2-5-tier5-metric").strip()
+    assert t5_metric.startswith("-") and "%" in t5_metric
+    t5_name = page.text_content("#p2-5-tier5-winner-name").strip()
+    assert len(t5_name) > 0
+
+    # 4. Verify Benchmark Champions Podium card
+    assert page.is_visible("#p2-5-podium-card")
+    gold_name = page.text_content("#p2-5-gold-name").strip()
+    gold_bytes = page.text_content("#p2-5-gold-bytes").strip()
+    assert gold_name != "--" and len(gold_name) > 0
+    assert gold_bytes.endswith("B") and gold_bytes != "0 B"
+
+    silver_name = page.text_content("#p2-5-silver-name").strip()
+    assert silver_name != "--" and len(silver_name) > 0
+
+    speed_name = page.text_content("#p2-5-speed-name").strip()
+    assert speed_name != "--" and len(speed_name) > 0
+
+    verified_badge = page.text_content("#p2-5-podium-verified-badge").strip()
+    assert "Lossless" in verified_badge or "Verified" in verified_badge
+
+
+
+
+
+
+
 

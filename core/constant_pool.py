@@ -140,8 +140,50 @@ class ConstantPool:
 
         return buf
 
+    @classmethod
+    def deserialize(cls, data: bytes) -> 'ConstantPool':
+        """Reconstructs a ConstantPool from binary serialized data."""
+        pool = cls()
+        if not data or len(data) < 2:
+            return pool
+
+        offset = 0
+        count = struct.unpack_from(">H", data, offset)[0]
+        offset += 2
+
+        tag_to_type = {0: "int", 1: "float", 2: "bool", 3: "string"}
+
+        for _ in range(count):
+            if offset >= len(data):
+                break
+            tag = data[offset]
+            offset += 1
+            const_type = tag_to_type.get(tag, "string")
+
+            if const_type == "int":
+                val = struct.unpack_from(">i", data, offset)[0]
+                offset += 4
+                pool.register(val, "int")
+            elif const_type == "float":
+                val = struct.unpack_from(">d", data, offset)[0]
+                offset += 8
+                pool.register(val, "float")
+            elif const_type == "bool":
+                val = bool(data[offset])
+                offset += 1
+                pool.register(val, "bool")
+            elif const_type == "string":
+                s_len = struct.unpack_from(">H", data, offset)[0]
+                offset += 2
+                val = data[offset:offset + s_len].decode('utf-8', errors='replace')
+                offset += s_len
+                pool.register(val, "string")
+
+        return pool
+
     def to_dict(self) -> dict:
         return {
             "entries": [entry.to_dict() for entry in self.entries],
             "stats": self.get_stats(),
         }
+
