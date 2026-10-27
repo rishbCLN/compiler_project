@@ -66,6 +66,11 @@ class Opcode(Enum):
     # System / Built-in
     PRINT = "PRINT"         # print arg1
     NOP = "NOP"
+    READ = "READ"           # result = next value from the program input
+
+    # Functions
+    PARAM = "PARAM"         # result = parameter number arg1 of the function
+    CALL = "CALL"           # result = call arg1(call_args...)
 
 
 @dataclass
@@ -80,6 +85,8 @@ class Instruction:
     phi_args: Dict[str, str] = field(default_factory=dict)
     # Extra annotations (e.g. constant value, live range)
     annotation: Optional[str] = None
+    # For CALL: the argument operands, in order
+    call_args: List[str] = field(default_factory=list)
 
     def __str__(self) -> str:
         if self.op == Opcode.LABEL:
@@ -106,6 +113,12 @@ class Instruction:
             return f"{self.result} = {symbol}{self.arg1}"
         elif self.op == Opcode.NOP:
             return "nop"
+        elif self.op == Opcode.READ:
+            return f"{self.result} = read"
+        elif self.op == Opcode.PARAM:
+            return f"{self.result} = param {self.arg1}"
+        elif self.op == Opcode.CALL:
+            return f"{self.result} = call {self.arg1}({', '.join(str(a) for a in self.call_args)})"
         else:
             # Binary operation
             op_symbols = {
@@ -124,6 +137,7 @@ class Instruction:
             "result": self.result,
             "line": self.line,
             "phi_args": self.phi_args if self.op == Opcode.PHI else None,
+            "call_args": [str(a) for a in self.call_args] if self.op == Opcode.CALL else None,
             "text": str(self),
             "annotation": self.annotation,
         }
@@ -131,6 +145,10 @@ class Instruction:
     def uses(self) -> List[str]:
         """Return list of variable names used by this instruction."""
         used = []
+        if self.op in (Opcode.READ, Opcode.PARAM):
+            return used
+        if self.op == Opcode.CALL:
+            return [str(a) for a in self.call_args if literal_type(a) is None]
         if self.op == Opcode.PHI:
             for var in self.phi_args.values():
                 if isinstance(var, str) and not var.lstrip('-').replace('.', '', 1).isdigit() and var not in ("true", "false"):
@@ -163,12 +181,12 @@ class Instruction:
 
 def canonical_form(instructions: List[Instruction],
                    block_order: Optional[List[str]] = None) -> List[Tuple]:
-    """Rewrite an instruction list with variables, labels and phi predecessor
-    blocks renamed v0, v1, ... / L0, ... / B0, ... in order of first
+    """Rewrite an instruction list with variables, labels, phi predecessor
+    blocks and called functions renamed v0, ... / L0, ... / B0, ... / F0, ... in order of first
     appearance, keeping literals. Blocks are numbered in `block_order` when
     it is given. Two lists are equal up to a consistent renaming exactly
     when their canonical forms are equal."""
-    names: Dict[str, Dict[str, str]] = {"v": {}, "L": {}, "B": {}}
+    names: Dict[str, Dict[str, str]] = {"v": {}, "L": {}, "B": {}, "F": {}}
     for block in block_order or []:
         names["B"].setdefault(str(block), f"B{len(names['B'])}")
 
@@ -192,6 +210,9 @@ def canonical_form(instructions: List[Instruction],
             out.append((instr.op, rename("L", instr.arg1)))
         elif instr.op in (Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE):
             out.append((instr.op, value(instr.arg1), rename("L", instr.result)))
+        elif instr.op == Opcode.CALL:
+            out.append((instr.op, rename("v", instr.result), rename("F", instr.arg1),
+                        tuple(value(a) for a in instr.call_args)))
         elif instr.op == Opcode.PHI:
             res = rename("v", instr.result)
             args = tuple(sorted((rename("B", p), value(v)) for p, v in instr.phi_args.items()))

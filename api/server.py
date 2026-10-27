@@ -128,6 +128,9 @@ def compile_code(req: CompileRequest):
         optimizer = IROptimizer(ssa_cfg)
         optimized_cfg = optimizer.optimize()
         opt_instructions = optimized_cfg.linearize()
+        # User-defined functions other than main are optimized on their own.
+        from core.module import optimize_functions
+        function_units = optimize_functions(ir_gen.functions)
         opt_stats = optimizer.stats
         opt_cfg_stats = optimized_cfg.get_stats()
         opt_elements = optimized_cfg.to_cytoscape_elements()
@@ -142,6 +145,7 @@ def compile_code(req: CompileRequest):
             symbol_table=symbol_table,
             constant_pool=constant_pool,
             cfg=optimized_cfg,
+            extra_units=function_units,
         )
 
         # 10. Advanced Architecture: Front-Coding, RPO Fallthrough, SSA Backward Deltas, Columnar SoA
@@ -157,7 +161,7 @@ def compile_code(req: CompileRequest):
         # 11. Multi-Algorithm Mainstream Compression Comparison Benchmark
         from core.compression_benchmarks import CompressionBenchmarkSuite
         emitter = BytecodeEmitter(symbol_table, constant_pool)
-        bytecode_bytes = bytes(emitter.serialize_program(opt_instructions, cfg=optimized_cfg))
+        bytecode_bytes = bytes(emitter.serialize_module([("main", opt_instructions, optimized_cfg)] + function_units))
         raw_text_bytes = len("\n".join(str(i) for i in initial_raw_instructions).encode('utf-8'))
         compression_comparison = CompressionBenchmarkSuite.run_benchmark(
             target_payload=bytecode_bytes,
@@ -250,7 +254,9 @@ def export_compressed_binary(req: CompileRequest):
         opt_instructions = opt_cfg.linearize()
 
         emitter = BytecodeEmitter(ir_gen.symbol_table, ir_gen.constant_pool)
-        bytecode = emitter.serialize_program(opt_instructions, cfg=opt_cfg)
+        from core.module import optimize_functions
+        bytecode = emitter.serialize_module([("main", opt_instructions, opt_cfg)]
+                                            + optimize_functions(ir_gen.functions))
         huffman_compressed = HuffmanCompressor.compress(bytes(bytecode))
 
         return Response(

@@ -183,6 +183,17 @@ class IROptimizer:
                     instr.arg2 = known_constants[str(instr.arg2)]
                     self.stats["constant_propagations"] += 1
 
+                if instr.op == Opcode.CALL:
+                    for k, a in enumerate(instr.call_args):
+                        if str(a) in known_constants:
+                            instr.call_args[k] = known_constants[str(a)]
+                            self.stats["constant_propagations"] += 1
+                    new_instructions.append(instr)
+                    continue
+                if instr.op in (Opcode.READ, Opcode.PARAM):
+                    new_instructions.append(instr)
+                    continue
+
                 # 2. Check if this is a constant assignment or load
                 if instr.op in (Opcode.LOAD_CONST, Opcode.ASSIGN):
                     parsed = self._parse_constant(instr.arg1)
@@ -491,13 +502,19 @@ class IROptimizer:
                                                         result=d, line=instr.line, annotation="sccp"))
                     self.stats["sccp_constants"] += 1
                     continue
-                if instr.op == Opcode.PHI:
+                if instr.op == Opcode.CALL:
+                    for k, a in enumerate(instr.call_args):
+                        ca = constant_of(str(a)) if self._parse_constant(a) is None else None
+                        if ca is not None:
+                            instr.call_args[k] = self._format_constant(ca[1])
+                            self.stats["sccp_constants"] += 1
+                elif instr.op == Opcode.PHI:
                     for pred, arg in list(instr.phi_args.items()):
                         ca = constant_of(str(arg))
                         if ca is not None:
                             instr.phi_args[pred] = self._format_constant(ca[1])
                             self.stats["sccp_constants"] += 1
-                elif instr.op not in (Opcode.LABEL, Opcode.JUMP):
+                elif instr.op not in (Opcode.LABEL, Opcode.JUMP, Opcode.PARAM):
                     for field in ("arg1", "arg2"):
                         operand = getattr(instr, field)
                         if operand is None:
@@ -539,12 +556,17 @@ class IROptimizer:
 
         for bb in self.cfg.blocks.values():
             for instr in bb.instructions:
-                if instr.op == Opcode.PHI:
+                if instr.op == Opcode.CALL:
+                    for k, a in enumerate(instr.call_args):
+                        if str(a) in copies:
+                            instr.call_args[k] = resolve(str(a))
+                            self.stats["copies_propagated"] += 1
+                elif instr.op == Opcode.PHI:
                     for pred, arg in list(instr.phi_args.items()):
                         if str(arg) in copies:
                             instr.phi_args[pred] = resolve(str(arg))
                             self.stats["copies_propagated"] += 1
-                elif instr.op not in (Opcode.LABEL, Opcode.JUMP):
+                elif instr.op not in (Opcode.LABEL, Opcode.JUMP, Opcode.PARAM):
                     for field in ("arg1", "arg2"):
                         operand = getattr(instr, field)
                         if operand is not None and str(operand) in copies:
@@ -649,7 +671,8 @@ class IROptimizer:
 
                     # Instructions with side effects must be preserved
                     if instr.op in (Opcode.PRINT, Opcode.RETURN, Opcode.JUMP,
-                                    Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE, Opcode.LABEL):
+                                    Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE, Opcode.LABEL,
+                                    Opcode.CALL, Opcode.READ):
                         filtered_instructions.append(instr)
                         continue
 

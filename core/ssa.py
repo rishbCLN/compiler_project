@@ -148,7 +148,11 @@ class SSATransformer:
             elif instr.op in (Opcode.NEG, Opcode.NOT):
                 if instr.arg1 and str(instr.arg1) in self.stacks and self.stacks[str(instr.arg1)]:
                     instr.arg1 = self.stacks[str(instr.arg1)][-1]
-            elif instr.op not in (Opcode.LABEL, Opcode.JUMP, Opcode.LOAD_CONST, Opcode.NOP):
+            elif instr.op == Opcode.CALL:
+                instr.call_args = [self.stacks[str(a)][-1] if str(a) in self.stacks and self.stacks[str(a)] else a
+                                   for a in instr.call_args]
+            elif instr.op not in (Opcode.LABEL, Opcode.JUMP, Opcode.LOAD_CONST, Opcode.NOP,
+                                  Opcode.READ, Opcode.PARAM):
                 # Binary operations
                 if instr.arg1 and str(instr.arg1) in self.stacks and self.stacks[str(instr.arg1)]:
                     instr.arg1 = self.stacks[str(instr.arg1)][-1]

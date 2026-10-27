@@ -104,3 +104,28 @@ class PrintNode(ASTNode):
 @dataclass
 class ReturnNode(ASTNode):
     value: Optional[ASTNode] = None
+
+
+@dataclass
+class InputNode(ASTNode):
+    """input(): reads the next integer of the program input."""
+
+
+@dataclass
+class ScanNode(ASTNode):
+    """scanf("%d...", &a, &b, ...): reads one integer into each variable."""
+    names: List[str] = field(default_factory=list)
+
+
+@dataclass
+class CallNode(ASTNode):
+    name: str = ""
+    args: List[ASTNode] = field(default_factory=list)
+
+
+@dataclass
+class FunctionDefNode(ASTNode):
+    name: str = ""
+    return_type: str = "int"
+    params: List[str] = field(default_factory=list)
+    body: Optional[ASTNode] = None

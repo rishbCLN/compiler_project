@@ -380,9 +380,10 @@ class BytecodeEmitter:
         LEB128(k)  constant pool: k entries, each a tag byte + payload
                    (0 = int as zigzag LEB128, 1 = float as 8-byte double,
                     2 = false, 3 = true, 4 = string as LEB128 length + UTF-8)
-        LEB128(b)  b basic blocks, each LEB128(instruction count) + instructions
+        LEB128(f)  f functions, main first; each function is
+          LEB128(b)  b basic blocks, each LEB128(instruction count) + instructions
 
-    Every instruction is one opcode byte followed by LEB128 operands. A value
+    Registers, labels and block ordinals are numbered per function. Every instruction is one opcode byte followed by LEB128 operands. A value
     operand is tagged in its low bit: (register << 1) for a variable and
     (pool index << 1) | 1 for a literal, so literal operands placed into
     instructions by constant propagation are stored in the package itself.
@@ -419,6 +420,9 @@ class BytecodeEmitter:
         Opcode.RETURN: 0x16,
         Opcode.PHI: 0x17,
         Opcode.PRINT: 0x18,
+        Opcode.READ: 0x19,
+        Opcode.PARAM: 0x1A,
+        Opcode.CALL: 0x1B,
     }
 
     POOL_TAGS = {"int": 0, "float": 1, "string": 4}
@@ -440,6 +444,9 @@ class BytecodeEmitter:
         self.id_to_var: Dict[int, str] = {}
         self.id_to_label: Dict[int, str] = {}
         self.id_to_block: Dict[int, str] = {}
+        self.function_to_id: Dict[str, int] = {"main": 0}
+        # Per function, in order: (name, id_to_var, id_to_label, id_to_block)
+        self.function_maps: List[Tuple[str, Dict[int, str], Dict[int, str], Dict[int, str]]] = []
         self.pool_bytes = 0
 
     @staticmethod
@@ -531,6 +538,22 @@ class BytecodeEmitter:
         elif instr.op == Opcode.NOP:
             pass
 
+        elif instr.op == Opcode.READ:
+            buf.extend(LEB128.encode_unsigned(self.get_var_id(instr.result)))
+
+        elif instr.op == Opcode.PARAM:
+            buf.extend(LEB128.encode_unsigned(self.get_var_id(instr.result)))
+            buf.extend(LEB128.encode_unsigned(int(instr.arg1)))
+
+        elif instr.op == Opcode.CALL:
+            if str(instr.arg1) not in self.function_to_id:
+                raise ValueError(f"Call to undefined function '{instr.arg1}'")
+            buf.extend(LEB128.encode_unsigned(self.get_var_id(instr.result)))
+            buf.extend(LEB128.encode_unsigned(self.function_to_id[str(instr.arg1)]))
+            buf.extend(LEB128.encode_unsigned(len(instr.call_args)))
+            for arg in instr.call_args:
+                buf.extend(self._value(arg))
+
         else:
             # Binary operations: result, arg1, arg2
             buf.extend(LEB128.encode_unsigned(self.get_var_id(instr.result)))
@@ -573,23 +596,40 @@ class BytecodeEmitter:
         return buf
 
     def serialize_program(self, instructions: List[Instruction], cfg: Optional[Any] = None) -> bytearray:
-        """Serialize a linear instruction list. Pass the CFG the list was
-        linearized from so that block boundaries (and phi predecessors) are
-        those of the CFG; without it the list is partitioned by leaders."""
+        """Serialize a linear instruction list as a one-function module. Pass
+        the CFG the list was linearized from so that block boundaries (and phi
+        predecessors) are those of the CFG; without it the list is
+        partitioned by leaders."""
+        return self.serialize_module([("main", instructions, cfg)])
+
+    def serialize_module(self, units: List[Tuple[str, List[Instruction], Optional[Any]]]) -> bytearray:
+        """Serialize several functions, given as (name, instructions, cfg);
+        the first unit is the entry point."""
         self.pool = ConstantPool()
-        self.var_to_id.clear()
-        self.label_to_id.clear()
-        self.block_to_id.clear()
+        self.function_to_id = {name: idx for idx, (name, _, _) in enumerate(units)}
+        self.function_maps = []
 
-        blocks = self._blocks_of(instructions, cfg)
-        for block_id, _ in blocks:
-            self.get_block_id(block_id)
-
-        body = bytearray(LEB128.encode_unsigned(len(blocks)))
-        for _, instrs in blocks:
-            body.extend(LEB128.encode_unsigned(len(instrs)))
-            for instr in instrs:
-                body.extend(self.emit_instruction(instr))
+        body = bytearray(LEB128.encode_unsigned(len(units)))
+        self.block_count = 0
+        for name, instructions, cfg in units:
+            self.var_to_id = {}
+            self.label_to_id = {}
+            self.block_to_id = {}
+            blocks = self._blocks_of(instructions, cfg)
+            for block_id, _ in blocks:
+                self.get_block_id(block_id)
+            body.extend(LEB128.encode_unsigned(len(blocks)))
+            for _, instrs in blocks:
+                body.extend(LEB128.encode_unsigned(len(instrs)))
+                for instr in instrs:
+                    body.extend(self.emit_instruction(instr))
+            self.block_count += len(blocks)
+            self.function_maps.append((
+                name,
+                {v: k for k, v in self.var_to_id.items()},
+                {v: k for k, v in self.label_to_id.items()},
+                {v: k for k, v in self.block_to_id.items()},
+            ))
 
         pool = self._serialize_pool()
         self.pool_bytes = len(pool)
@@ -600,10 +640,8 @@ class BytecodeEmitter:
         package.extend(pool)
         package.extend(body)
 
-        self.id_to_var = {v: k for k, v in self.var_to_id.items()}
-        self.id_to_label = {v: k for k, v in self.label_to_id.items()}
-        self.id_to_block = {v: k for k, v in self.block_to_id.items()}
-        self.block_count = len(blocks)
+        # Name maps of the entry function, for callers that decode one unit.
+        _, self.id_to_var, self.id_to_label, self.id_to_block = self.function_maps[0]
         return package
 
 
@@ -651,12 +689,11 @@ class BytecodeDecoder:
         return pool, literals, offset
 
     @classmethod
-    def decode_blocks(cls, data: bytes,
-                      id_to_var: Optional[Dict[int, str]] = None,
-                      id_to_label: Optional[Dict[int, str]] = None,
-                      id_to_block: Optional[Dict[int, str]] = None
-                      ) -> Tuple[List[Tuple[str, List[Instruction]]], ConstantPool]:
-        """Decode a package into its basic blocks: [(block name, instructions)]."""
+    def decode_module(cls, data: bytes,
+                      function_maps: Optional[List[Tuple[str, Dict[int, str], Dict[int, str], Dict[int, str]]]] = None
+                      ) -> Tuple[List[Tuple[str, List[Tuple[str, List[Instruction]]]]], ConstantPool]:
+        """Decode a package into its functions: [(name, [(block, instructions)])].
+        Without name maps, functions are called F0 (entry), F1, ..."""
         if not data or len(data) < 5:
             return [], ConstantPool()
         if data[:4] != b"CLIR":
@@ -666,19 +703,7 @@ class BytecodeDecoder:
             raise ValueError(f"Unsupported bytecode version: {version}")
 
         pool, literals, offset = cls._decode_pool(data, 5)
-
-        var_map = id_to_var or {}
-        label_map = id_to_label or {}
-        block_map = id_to_block or {}
-
-        def var(vid: int) -> str:
-            return var_map.get(vid, f"v{vid}")
-
-        def label(lid: int) -> str:
-            return label_map.get(lid, f"L{lid}")
-
-        def block(bid: int) -> str:
-            return block_map.get(bid, f"B{bid}")
+        maps = function_maps or []
 
         def read() -> int:
             nonlocal offset
@@ -686,68 +711,113 @@ class BytecodeDecoder:
             offset += r
             return val
 
-        def value() -> str:
-            tagged = read()
-            return literals[tagged >> 1] if tagged & 1 else var(tagged >> 1)
+        num_functions = read()
+        fnames = [maps[f][0] if f < len(maps) else f"F{f}" for f in range(num_functions)]
+        functions = []
+        for f in range(num_functions):
+            _, var_map, label_map, block_map = maps[f] if f < len(maps) else (None, {}, {}, {})
 
-        def optional_value() -> Optional[str]:
-            tagged = read()
-            if tagged == 0:
-                return None
-            tagged -= 1
-            return literals[tagged >> 1] if tagged & 1 else var(tagged >> 1)
+            def var(vid: int) -> str:
+                return var_map.get(vid, f"v{vid}")
 
-        blocks: List[Tuple[str, List[Instruction]]] = []
-        num_blocks = read()
-        for b in range(num_blocks):
-            instructions: List[Instruction] = []
-            for _ in range(read()):
-                op = cls.REVERSE_OPCODE_MAP.get(data[offset], Opcode.NOP)
-                offset += 1
-                if op in (Opcode.LABEL, Opcode.JUMP):
-                    instructions.append(Instruction(op=op, arg1=label(read())))
-                elif op in (Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE):
-                    cond = value()
-                    instructions.append(Instruction(op=op, arg1=cond, result=label(read())))
-                elif op == Opcode.LOAD_CONST:
-                    res = var(read())
-                    instructions.append(Instruction(op=op, result=res, arg1=literals[read()]))
-                elif op == Opcode.PHI:
-                    res = var(read())
-                    phi_args = {}
-                    for _ in range(read()):
-                        pred = block(read())
-                        phi_args[pred] = value()
-                    instructions.append(Instruction(op=op, result=res, phi_args=phi_args))
-                elif op in (Opcode.PRINT, Opcode.RETURN):
-                    instructions.append(Instruction(op=op, arg1=optional_value()))
-                elif op in (Opcode.ASSIGN, Opcode.NEG, Opcode.NOT):
-                    res = var(read())
-                    instructions.append(Instruction(op=op, result=res, arg1=value()))
-                elif op == Opcode.NOP:
-                    instructions.append(Instruction(op=op))
-                else:
-                    res = var(read())
-                    a1 = value()
-                    instructions.append(Instruction(op=op, result=res, arg1=a1, arg2=value()))
-            blocks.append((block(b), instructions))
-        return blocks, pool
+            def label(lid: int) -> str:
+                return label_map.get(lid, f"L{lid}")
+
+            def block(bid: int) -> str:
+                return block_map.get(bid, f"B{bid}")
+
+            def value() -> str:
+                tagged = read()
+                return literals[tagged >> 1] if tagged & 1 else var(tagged >> 1)
+
+            def optional_value() -> Optional[str]:
+                tagged = read()
+                if tagged == 0:
+                    return None
+                tagged -= 1
+                return literals[tagged >> 1] if tagged & 1 else var(tagged >> 1)
+
+            blocks: List[Tuple[str, List[Instruction]]] = []
+            num_blocks = read()
+            for b in range(num_blocks):
+                instructions: List[Instruction] = []
+                for _ in range(read()):
+                    op = cls.REVERSE_OPCODE_MAP.get(data[offset], Opcode.NOP)
+                    offset += 1
+                    if op in (Opcode.LABEL, Opcode.JUMP):
+                        instructions.append(Instruction(op=op, arg1=label(read())))
+                    elif op in (Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE):
+                        cond = value()
+                        instructions.append(Instruction(op=op, arg1=cond, result=label(read())))
+                    elif op == Opcode.LOAD_CONST:
+                        res = var(read())
+                        instructions.append(Instruction(op=op, result=res, arg1=literals[read()]))
+                    elif op == Opcode.PHI:
+                        res = var(read())
+                        phi_args = {}
+                        for _ in range(read()):
+                            pred = block(read())
+                            phi_args[pred] = value()
+                        instructions.append(Instruction(op=op, result=res, phi_args=phi_args))
+                    elif op in (Opcode.PRINT, Opcode.RETURN):
+                        instructions.append(Instruction(op=op, arg1=optional_value()))
+                    elif op in (Opcode.ASSIGN, Opcode.NEG, Opcode.NOT):
+                        res = var(read())
+                        instructions.append(Instruction(op=op, result=res, arg1=value()))
+                    elif op == Opcode.NOP:
+                        instructions.append(Instruction(op=op))
+                    elif op == Opcode.READ:
+                        instructions.append(Instruction(op=op, result=var(read())))
+                    elif op == Opcode.PARAM:
+                        res = var(read())
+                        instructions.append(Instruction(op=op, result=res, arg1=str(read())))
+                    elif op == Opcode.CALL:
+                        res = var(read())
+                        callee = read()
+                        args = [value() for _ in range(read())]
+                        instructions.append(Instruction(op=op, result=res, arg1=fnames[callee],
+                                                        call_args=args))
+                    else:
+                        res = var(read())
+                        a1 = value()
+                        instructions.append(Instruction(op=op, result=res, arg1=a1, arg2=value()))
+                blocks.append((block(b), instructions))
+            functions.append((fnames[f], blocks))
+        return functions, pool
+
+    @classmethod
+    def decode_blocks(cls, data: bytes,
+                      id_to_var: Optional[Dict[int, str]] = None,
+                      id_to_label: Optional[Dict[int, str]] = None,
+                      id_to_block: Optional[Dict[int, str]] = None
+                      ) -> Tuple[List[Tuple[str, List[Instruction]]], ConstantPool]:
+        """Decode the basic blocks of the entry function: [(block name, instructions)]."""
+        maps = [("main", id_to_var or {}, id_to_label or {}, id_to_block or {})]
+        functions, pool = cls.decode_module(data, maps)
+        return (functions[0][1] if functions else []), pool
 
     @classmethod
     def decode_program(cls, data: bytes,
                        id_to_var: Optional[Dict[int, str]] = None,
                        id_to_label: Optional[Dict[int, str]] = None,
                        id_to_block: Optional[Dict[int, str]] = None) -> Tuple[List[Instruction], ConstantPool]:
-        """Decode a package into a flat instruction list and its constant pool."""
+        """Decode the entry function into a flat instruction list and the constant pool."""
         blocks, pool = cls.decode_blocks(data, id_to_var, id_to_label, id_to_block)
         return [i for _, instrs in blocks for i in instrs], pool
 
     @classmethod
     def decode_cfg(cls, data: bytes) -> 'ControlFlowGraph':
-        """Decode a package straight into an executable control-flow graph."""
+        """Decode the entry function straight into an executable CFG."""
         from core.cfg import ControlFlowGraph
         blocks, _ = cls.decode_blocks(data)
         return ControlFlowGraph.from_blocks(blocks)
+
+    @classmethod
+    def decode_module_cfgs(cls, data: bytes) -> Dict[str, 'ControlFlowGraph']:
+        """Decode every function into an executable CFG, keyed F0 (entry), F1, ..."""
+        from core.cfg import ControlFlowGraph
+        functions, _ = cls.decode_module(data)
+        return {name: ControlFlowGraph.from_blocks(blocks) for name, blocks in functions}
 
 
 class IRCompressionPipeline:
@@ -758,7 +828,8 @@ class IRCompressionPipeline:
             optimized_instructions: List[Instruction],
             symbol_table: SymbolTable,
             constant_pool: ConstantPool,
-            cfg: Optional[Any] = None) -> dict:
+            cfg: Optional[Any] = None,
+            extra_units: Optional[List[Tuple[str, List[Instruction], Any]]] = None) -> dict:
 
         # 1. Raw Text IR representation
         raw_text = "\n".join(str(i) for i in raw_instructions)
@@ -770,7 +841,7 @@ class IRCompressionPipeline:
 
         # 3. Binary Bytecode Serialization
         emitter = BytecodeEmitter(symbol_table, constant_pool)
-        bytecode = emitter.serialize_program(optimized_instructions, cfg=cfg)
+        bytecode = emitter.serialize_module([("main", optimized_instructions, cfg)] + list(extra_units or []))
         bytecode_bytes = len(bytecode)
 
         # 4. Huffman Entropy Compression on Bytecode

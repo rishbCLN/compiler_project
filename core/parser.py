@@ -8,7 +8,8 @@ from core.lexer import Token, TokenType
 from core.ast_nodes import (
     ASTNode, ProgramNode, VarDeclNode, AssignNode, LiteralNode,
     VariableNode, BinaryOpNode, UnaryOpNode, BlockNode, IfNode,
-    WhileNode, ForNode, PrintNode, ReturnNode
+    WhileNode, ForNode, PrintNode, ReturnNode, InputNode, ScanNode, CallNode,
+    FunctionDefNode
 )
 
 
@@ -71,6 +72,8 @@ class Parser:
             return self.parse_for()
         elif tok.type == TokenType.PRINT:
             return self.parse_print()
+        elif tok.type == TokenType.SCANF:
+            return self.parse_scanf()
         elif tok.type == TokenType.RETURN:
             return self.parse_return()
         elif tok.type == TokenType.LBRACE:
@@ -90,21 +93,30 @@ class Parser:
         self.pos += 1
         name_tok = self.expect(TokenType.IDENTIFIER, "Expected identifier after type name")
 
-        # Function definition or prototype: e.g. int main() { ... } or void main(void) { ... }
+        # Function definition or prototype: e.g. int main() { ... } or int f(int a);
         if self.match(TokenType.LPAREN):
-            paren_depth = 1
-            while self.pos < len(self.tokens) and paren_depth > 0:
-                tok = self.current_token()
-                if tok.type == TokenType.LPAREN:
-                    paren_depth += 1
-                elif tok.type == TokenType.RPAREN:
-                    paren_depth -= 1
-                self.pos += 1
+            params: List[str] = []
+            while self.current_token().type not in (TokenType.RPAREN, TokenType.EOF):
+                if self.current_token().type in (TokenType.INT, TokenType.FLOAT,
+                                                 TokenType.STRING, TokenType.BOOL):
+                    self.pos += 1  # parameter type (or `void`)
+                    if self.current_token().type == TokenType.IDENTIFIER:
+                        params.append(self.current_token().value)
+                        self.pos += 1
+                elif self.current_token().type == TokenType.COMMA:
+                    self.pos += 1
+                else:
+                    raise ParserError("Expected a parameter declaration", self.current_token())
+            self.expect(TokenType.RPAREN, "Expected ')' after parameters")
             if self.match(TokenType.SEMICOLON):
                 # Function prototype
                 return BlockNode(line=type_tok.line, col=type_tok.col, statements=[])
-            # Function body block
-            return self.parse_block()
+            body = self.parse_block()
+            if name_tok.value == "main":
+                # The body of main() is the program itself.
+                return body
+            return FunctionDefNode(line=type_tok.line, col=type_tok.col, name=name_tok.value,
+                                   return_type=type_tok.value, params=params, body=body)
 
         initializer: Optional[ASTNode] = None
         if self.match(TokenType.ASSIGN):
@@ -277,6 +289,20 @@ class Parser:
         self.expect(TokenType.SEMICOLON, "Expected ';' after print statement")
         return PrintNode(line=print_tok.line, col=print_tok.col, expressions=expressions)
 
+    def parse_scanf(self) -> ScanNode:
+        """scanf("<format>", &a, &b, ...); -- the format string is ignored and
+        one integer is read into each listed variable."""
+        scan_tok = self.expect(TokenType.SCANF)
+        self.expect(TokenType.LPAREN, "Expected '(' after 'scanf'")
+        self.expect(TokenType.STRING_LIT, "Expected a format string in scanf")
+        names: List[str] = []
+        while self.match(TokenType.COMMA):
+            self.expect(TokenType.AMPERSAND, "Expected '&' before a scanf target")
+            names.append(self.expect(TokenType.IDENTIFIER, "Expected a variable after '&'").value)
+        self.expect(TokenType.RPAREN, "Expected ')' after scanf arguments")
+        self.expect(TokenType.SEMICOLON, "Expected ';' after scanf")
+        return ScanNode(line=scan_tok.line, col=scan_tok.col, names=names)
+
     def parse_return(self) -> ReturnNode:
         ret_tok = self.expect(TokenType.RETURN)
         val: Optional[ASTNode] = None
@@ -368,6 +394,17 @@ class Parser:
             return LiteralNode(line=tok.line, col=tok.col, value=(tok.value == "true"), literal_type="bool")
         elif tok.type == TokenType.IDENTIFIER:
             self.pos += 1
+            if self.current_token().type == TokenType.LPAREN:
+                self.pos += 1
+                args: List[ASTNode] = []
+                if self.current_token().type != TokenType.RPAREN:
+                    args.append(self.parse_expression())
+                    while self.match(TokenType.COMMA):
+                        args.append(self.parse_expression())
+                self.expect(TokenType.RPAREN, "Expected ')' after call arguments")
+                if tok.value == "input" and not args:
+                    return InputNode(line=tok.line, col=tok.col)
+                return CallNode(line=tok.line, col=tok.col, name=tok.value, args=args)
             return VariableNode(line=tok.line, col=tok.col, name=tok.value)
         elif tok.type == TokenType.LPAREN:
             self.pos += 1

@@ -70,6 +70,9 @@ def run_cli_pipeline(source_code: str, show_stats: bool = True, export_cir: Opti
         optimizer = IROptimizer(ssa_cfg)
         opt_cfg = optimizer.optimize()
         opt_instructions = opt_cfg.linearize()
+        # User-defined functions other than main are optimized on their own.
+        from core.module import optimize_functions
+        function_units = optimize_functions(ir_gen.functions)
 
     # 5. Symbol Table Minification
     symbol_table.minify_symbols()
@@ -82,6 +85,7 @@ def run_cli_pipeline(source_code: str, show_stats: bool = True, export_cir: Opti
             symbol_table=symbol_table,
             constant_pool=constant_pool,
             cfg=opt_cfg,
+            extra_units=function_units,
         )
 
     # 7. Advanced Architecture: Columnar SoA, RPO Fallthrough, Front-Coding
@@ -198,7 +202,7 @@ def run_cli_pipeline(source_code: str, show_stats: bool = True, export_cir: Opti
         # 8. Mainstream Compression Comparison Table (Huffman vs All Others)
         from core.compression_benchmarks import CompressionBenchmarkSuite
         emitter = BytecodeEmitter(symbol_table, constant_pool)
-        bc_bytes = bytes(emitter.serialize_program(opt_instructions, cfg=opt_cfg))
+        bc_bytes = bytes(emitter.serialize_module([("main", opt_instructions, opt_cfg)] + function_units))
         raw_text_bytes = metrics["raw_ir_text_bytes"]
         comp_bench = CompressionBenchmarkSuite.run_benchmark(
             target_payload=bc_bytes,

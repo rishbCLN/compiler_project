@@ -30,6 +30,7 @@ class TokenType(Enum):
     FOR = auto()
     PRINT = auto()
     RETURN = auto()
+    SCANF = auto()
 
     # Operators
     PLUS = auto()           # +
@@ -59,6 +60,7 @@ class TokenType(Enum):
     RBRACE = auto()         # }
     SEMICOLON = auto()      # ;
     COMMA = auto()          # ,
+    AMPERSAND = auto()      # & (address-of, only in scanf arguments)
 
 
 KEYWORDS = {
@@ -72,6 +74,7 @@ KEYWORDS = {
     "for": TokenType.FOR,
     "print": TokenType.PRINT,
     "printf": TokenType.PRINT,
+    "scanf": TokenType.SCANF,
     "return": TokenType.RETURN,
     "true": TokenType.BOOL_LIT,
     "false": TokenType.BOOL_LIT,
@@ -314,7 +317,7 @@ class Lexer:
                     self.advance()
                     tokens.append(Token(TokenType.AND, "&&", start_line, start_col))
                 else:
-                    raise LexerError("Expected '&&' for logical AND", start_line, start_col)
+                    tokens.append(Token(TokenType.AMPERSAND, "&", start_line, start_col))
             elif ch == '|':
                 self.advance()
                 if self.current_char() == '|':

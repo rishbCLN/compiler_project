@@ -226,6 +226,21 @@ class SSABackwardDeltaEncoder:
                 })
                 continue
 
+            if instr.op == Opcode.CALL:
+                call_args: List[Any] = []
+                for arg in instr.call_args:
+                    delta, raw = cls._operand(arg, idx, def_locations)
+                    call_args.append(delta if delta is not None else raw)
+                encoded.append({
+                    "op": instr.op,
+                    "is_phi": False,
+                    "is_call": True,
+                    "callee": str(instr.arg1),
+                    "call_args": call_args,
+                    "line": instr.line,
+                })
+                continue
+
             is_label_op = instr.op in (Opcode.LABEL, Opcode.JUMP)
             if is_label_op:
                 arg1_delta, arg1_raw = None, (str(instr.arg1) if instr.arg1 is not None else None)
@@ -265,6 +280,7 @@ class ColumnarBytecodeSerializer:
         Opcode.ASSIGN: 0x10, Opcode.LOAD_CONST: 0x11, Opcode.LABEL: 0x12,
         Opcode.JUMP: 0x13, Opcode.JUMP_IF_TRUE: 0x14, Opcode.JUMP_IF_FALSE: 0x15,
         Opcode.RETURN: 0x16, Opcode.PHI: 0x17, Opcode.PRINT: 0x18,
+        Opcode.READ: 0x19, Opcode.PARAM: 0x1A, Opcode.CALL: 0x1B,
     }
     REVERSE_OPCODE = {v: k for k, v in OPCODE_MAP.items()}
     CONTAINER_MAGIC = b"SOAIR\x02"
@@ -276,6 +292,8 @@ class ColumnarBytecodeSerializer:
         """Serializes encoded instructions into 4 columnar byte streams.
 
         The layout is fully reversible (see ``deserialize_columns``):
+          * CALL: callee name in ``immediates``; one flags byte = number of
+            arguments, then one kind flag per argument as for a phi.
           * PHI: one flags byte = number of incoming edges, then one flags
             byte per edge (sorted by pred_id): 0x01 = delta, 0x04 = raw.
             The pred_id string goes to ``immediates``, followed by the raw
@@ -302,7 +320,18 @@ class ColumnarBytecodeSerializer:
             op_byte = cls.OPCODE_MAP.get(op, 0x00)
             stream_opcodes.append(op_byte)
 
-            if item.get("is_phi"):
+            if item.get("is_call"):
+                # Like a phi: argument count, then one kind flag per argument.
+                write_imm(item["callee"])
+                stream_flags.append(len(item["call_args"]) & 0xFF)
+                for arg in item["call_args"]:
+                    if isinstance(arg, int):
+                        stream_flags.append(0x01)
+                        stream_deltas.extend(LEB128.encode_signed(arg))
+                    else:
+                        stream_flags.append(0x04)
+                        write_imm(str(arg))
+            elif item.get("is_phi"):
                 phi_deltas = item["phi_deltas"]
                 stream_flags.append(len(phi_deltas) & 0xFF)
                 for pred_id in sorted(phi_deltas.keys()):
@@ -394,6 +423,15 @@ class ColumnarBytecodeSerializer:
         result: List[dict] = []
         for idx in range(count):
             op = cls.REVERSE_OPCODE.get(opcodes[idx], Opcode.NOP)
+            if op == Opcode.CALL:
+                callee = read_imm()
+                args: List[Any] = []
+                for _ in range(read_flag()):
+                    kind = read_flag()
+                    args.append(read_delta() if kind & 0x01 else read_imm())
+                result.append({"op": op, "is_phi": False, "is_call": True,
+                               "callee": callee, "call_args": args})
+                continue
             flag = read_flag()
 
             if op == Opcode.PHI:
@@ -451,6 +489,11 @@ class ColumnarBytecodeSerializer:
         for idx, item in enumerate(encoded):
             op = item["op"]
             result = None if op in cls.NON_DEFINING else f"%{idx}"
+            if item.get("is_call"):
+                args = [f"%{idx - a}" if isinstance(a, int) else a for a in item["call_args"]]
+                instructions.append(Instruction(op=op, result=result, arg1=item["callee"],
+                                                call_args=args))
+                continue
             if item.get("is_phi"):
                 phi_args = {pred: (f"%{idx - arg}" if isinstance(arg, int) else arg)
                             for pred, arg in item["phi_deltas"].items()}
@@ -465,47 +508,57 @@ class ColumnarBytecodeSerializer:
 
     @classmethod
     def pack_container(cls, columns: dict, front_coded_symbols: bytes) -> bytes:
-        """Packs columnar streams and front-coded symbols into a unified binary container."""
+        """Packs the columnar streams of one function and the front-coded
+        symbols into a container."""
+        return cls.pack_module([columns], front_coded_symbols)
+
+    @classmethod
+    def pack_module(cls, function_columns: List[dict], front_coded_symbols: bytes) -> bytes:
+        """Container layout: magic 'SOAIR' + version byte, LEB128(function
+        count), per function LEB128(instruction count) and the four streams,
+        each with a LEB128 length prefix, then the front-coded symbol table."""
         container = bytearray()
-        # Magic header 'SOAIR' (Structure-of-Arrays IR) + format version
         container.extend(cls.CONTAINER_MAGIC)
-
-        container.extend(LEB128.encode_unsigned(columns["instruction_count"]))
-
-        # Write each column with length prefix
-        for key in ("opcodes", "flags", "deltas", "immediates"):
-            col_data = columns[key]
-            container.extend(LEB128.encode_unsigned(len(col_data)))
-            container.extend(col_data)
-
-        # Write front-coded symbols
+        container.extend(LEB128.encode_unsigned(len(function_columns)))
+        for columns in function_columns:
+            container.extend(LEB128.encode_unsigned(columns["instruction_count"]))
+            for key in ("opcodes", "flags", "deltas", "immediates"):
+                col_data = columns[key]
+                container.extend(LEB128.encode_unsigned(len(col_data)))
+                container.extend(col_data)
         container.extend(LEB128.encode_unsigned(len(front_coded_symbols)))
         container.extend(front_coded_symbols)
-
         return bytes(container)
 
     @classmethod
-    def unpack_container(cls, data: bytes) -> Tuple[dict, bytes]:
-        """Unpacks container into separate columnar streams and front-coded symbols."""
+    def unpack_module(cls, data: bytes) -> Tuple[List[dict], bytes]:
+        """Inverse of pack_module: (columns per function, front-coded symbols)."""
         if not data.startswith(cls.CONTAINER_MAGIC):
             raise ValueError("Invalid SOAIR container header")
-
         offset = len(cls.CONTAINER_MAGIC)
-        instr_count, read_len = LEB128.decode_unsigned(data, offset)
-        offset += read_len
 
-        columns = {"instruction_count": instr_count}
-        for key in ("opcodes", "flags", "deltas", "immediates"):
-            col_len, read_len = LEB128.decode_unsigned(data, offset)
-            offset += read_len
-            columns[key] = data[offset:offset + col_len]
-            offset += col_len
+        def read() -> int:
+            nonlocal offset
+            val, r = LEB128.decode_unsigned(data, offset)
+            offset += r
+            return val
 
-        sym_len, read_len = LEB128.decode_unsigned(data, offset)
-        offset += read_len
-        symbols_bytes = data[offset:offset + sym_len]
+        functions = []
+        for _ in range(read()):
+            columns = {"instruction_count": read()}
+            for key in ("opcodes", "flags", "deltas", "immediates"):
+                length = read()
+                columns[key] = data[offset:offset + length]
+                offset += length
+            functions.append(columns)
+        sym_len = read()
+        return functions, data[offset:offset + sym_len]
 
-        return columns, symbols_bytes
+    @classmethod
+    def unpack_container(cls, data: bytes) -> Tuple[dict, bytes]:
+        """Unpacks the first function's streams and the front-coded symbols."""
+        functions, symbols = cls.unpack_module(data)
+        return functions[0], symbols
 
 
 class AdvancedIRCompressionEngine:

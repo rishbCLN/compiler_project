@@ -4,11 +4,12 @@ Translates structured high-level AST into linear quadruples with temporary regis
 populates the Symbol Table, and registers literals into the Constant Pool.
 """
 
-from typing import List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from core.ast_nodes import (
     ASTNode, ProgramNode, VarDeclNode, AssignNode, LiteralNode,
     VariableNode, BinaryOpNode, UnaryOpNode, BlockNode, IfNode,
-    WhileNode, ForNode, PrintNode, ReturnNode
+    WhileNode, ForNode, PrintNode, ReturnNode, InputNode, ScanNode, CallNode,
+    FunctionDefNode
 )
 from core.ir import Instruction, Opcode
 from core.symbol_table import SymbolTable
@@ -16,8 +17,15 @@ from core.constant_pool import ConstantPool
 
 
 class IRGenerator:
+    """Lowers a program to TAC. The top-level statements (and the body of
+    main) form the main unit returned by generate(); every other function
+    definition becomes its own unit in self.functions, whose instructions
+    start with one PARAM per parameter."""
+
     def __init__(self):
         self.instructions: List[Instruction] = []
+        # name -> (parameter names, instructions), in definition order
+        self.functions: Dict[str, Tuple[List[str], List[Instruction]]] = {}
         self.temp_counter = 0
         self.label_counter = 0
         self.temp_prefix = "t"
@@ -40,6 +48,8 @@ class IRGenerator:
             return
         if isinstance(node, (VarDeclNode, AssignNode, VariableNode)):
             names.add(node.name)
+        if isinstance(node, (ScanNode, FunctionDefNode)):
+            names.update(node.names if isinstance(node, ScanNode) else node.params)
         for value in node.__dict__.values():
             if isinstance(value, (ASTNode, list)):
                 IRGenerator._collect_identifiers(value, names)
@@ -66,7 +76,8 @@ class IRGenerator:
         return instr
 
     def generate(self, ast: ProgramNode) -> List[Instruction]:
-        self.instructions.clear()
+        self.instructions = []
+        self.functions = {}
         self.temp_counter = 0
         self.label_counter = 0
         self.temp_prefix = self._choose_temp_prefix(ast)
@@ -204,6 +215,39 @@ class IRGenerator:
         for expr in node.expressions:
             place = self.visit(expr)
             self.emit(Opcode.PRINT, arg1=place, line=node.line)
+
+    def visit_FunctionDefNode(self, node: FunctionDefNode):
+        if node.name in self.functions or node.name == "main":
+            raise ValueError(f"Function '{node.name}' is defined twice")
+        outer = self.instructions
+        self.instructions = []
+        self.symbol_table.enter_scope()
+        for index, param in enumerate(node.params):
+            self.symbol_table.declare_symbol(param, "int", line=node.line)
+            self.emit(Opcode.PARAM, arg1=str(index), result=param, line=node.line)
+        self.visit(node.body)
+        if not self.instructions or self.instructions[-1].op != Opcode.RETURN:
+            self.emit(Opcode.RETURN, line=node.line)
+        self.symbol_table.exit_scope()
+        self.functions[node.name] = (list(node.params), self.instructions)
+        self.instructions = outer
+
+    def visit_CallNode(self, node: CallNode) -> str:
+        places = [self.visit(arg) for arg in node.args]
+        t = self.new_temp()
+        instr = self.emit(Opcode.CALL, arg1=node.name, result=t, line=node.line)
+        instr.call_args = places
+        return t
+
+    def visit_InputNode(self, node: InputNode) -> str:
+        t = self.new_temp()
+        self.emit(Opcode.READ, result=t, line=node.line)
+        return t
+
+    def visit_ScanNode(self, node: ScanNode):
+        for name in node.names:
+            self.symbol_table.record_reference(name, line=node.line)
+            self.emit(Opcode.READ, result=name, line=node.line)
 
     def visit_ReturnNode(self, node: ReturnNode):
         place = self.visit(node.value) if node.value else None
