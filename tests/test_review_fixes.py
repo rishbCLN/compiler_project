@@ -135,3 +135,43 @@ def test_constant_pool_holds_only_referenced_literals(path):
     pooled = {(e.const_type, e.value) for e in emitter.pool.entries}
     assert len(emitter.pool.entries) == len(used)
     assert len(pooled) == len(emitter.pool.entries)
+
+
+# ------------------------------------------------------------- Comment 3
+
+from core.advanced_compression import (
+    SSABackwardDeltaEncoder, ColumnarBytecodeSerializer, FrontCodedStringPool)
+
+
+def _columnar_roundtrip(instrs):
+    columns = ColumnarBytecodeSerializer.serialize_columns(
+        SSABackwardDeltaEncoder.encode_instructions(instrs))
+    container = ColumnarBytecodeSerializer.pack_container(columns, FrontCodedStringPool.encode([])[0])
+    unpacked, _ = ColumnarBytecodeSerializer.unpack_container(container)
+    return ColumnarBytecodeSerializer.decode_instructions(
+        ColumnarBytecodeSerializer.deserialize_columns(unpacked))
+
+
+def test_columnar_keeps_forward_phi_references():
+    """A loop-carried phi argument is defined after the phi in linear order.
+    The released encoder stored 0 for it, so the argument was lost."""
+    instrs = [
+        Instruction(op=Opcode.LOAD_CONST, arg1="0", result="i_0"),
+        Instruction(op=Opcode.LABEL, arg1="L_head"),
+        Instruction(op=Opcode.PHI, result="i_1", phi_args={"BB0": "i_0", "BB2": "i_2"}),
+        Instruction(op=Opcode.LT, arg1="i_1", arg2="10", result="c_0"),
+        Instruction(op=Opcode.JUMP_IF_FALSE, arg1="c_0", result="L_end"),
+        Instruction(op=Opcode.ADD, arg1="i_1", arg2="1", result="i_2"),
+        Instruction(op=Opcode.JUMP, arg1="L_head"),
+        Instruction(op=Opcode.LABEL, arg1="L_end"),
+        Instruction(op=Opcode.PRINT, arg1="i_1"),
+    ]
+    decoded = _columnar_roundtrip(instrs)
+    assert decoded[2].phi_args == {"BB0": "%0", "BB2": "%5"}
+    assert canonical_form(decoded) == canonical_form(instrs)
+
+
+@pytest.mark.parametrize("path", BENCHMARKS)
+def test_columnar_container_is_lossless_on_benchmarks(path):
+    _, _, _, opt, _ = _compile(open(path, encoding="utf-8").read())
+    assert canonical_form(_columnar_roundtrip(opt)) == canonical_form(opt)

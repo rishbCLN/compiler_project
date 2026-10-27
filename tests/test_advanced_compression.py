@@ -106,7 +106,7 @@ def test_columnar_soa_roundtrip():
     symbols = ["x", "y", "temp"]
     front_coded_syms, _ = FrontCodedStringPool.encode(symbols)
     container = ColumnarBytecodeSerializer.pack_container(columns, front_coded_syms)
-    assert container.startswith(b"SOAIR\x01")
+    assert container.startswith(ColumnarBytecodeSerializer.CONTAINER_MAGIC)
 
     unpacked_columns, unpacked_sym_bytes = ColumnarBytecodeSerializer.unpack_container(container)
     assert unpacked_columns["instruction_count"] == len(opt_instructions)

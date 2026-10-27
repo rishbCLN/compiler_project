@@ -12,7 +12,7 @@ Implements:
 from typing import List, Dict, Tuple, Optional, Any, Set
 import struct
 from collections import Counter
-from core.ir import Instruction, Opcode
+from core.ir import Instruction, Opcode, literal_type, canonical_form
 from core.cfg import ControlFlowGraph, BasicBlock
 from core.binary_compression import LEB128, HuffmanCompressor, RegisterPackedBytecodeEmitter, RegisterPackedBytecodeDecoder
 from core.liveness import LivenessAnalyzer
@@ -176,71 +176,72 @@ class RPOBlockScheduler:
 
 class SSABackwardDeltaEncoder:
     """
-    SSA Variable ID Compression via Implicit Ordinal Definitions & Backward Usage Deltas.
+    SSA Variable ID Compression via Implicit Ordinal Definitions & Usage Deltas.
     - Definitions omit IDs: the def ID is strictly the instruction's ordinal index i.
-    - Uses encode backward distance: delta = current_instruction_index - definition_instruction_index.
-    Live ranges are typically short, clustering delta values in the range [1..10].
+    - A use stores the signed distance delta = i - def_index to its definition.
+      Most uses follow their definition (delta > 0, typically 1..10), but a
+      loop-carried phi argument is defined later in the linear order, which
+      gives a negative delta. Deltas are written zigzag-coded, so both kinds
+      survive the round trip.
+    - Literals, labels and names with no definition in the list are kept as
+      raw text.
     """
 
     @staticmethod
-    def encode_instructions(instructions: List[Instruction]) -> List[dict]:
+    def _operand(value: Any, idx: int, def_locations: Dict[str, int]) -> Tuple[Optional[int], Optional[str]]:
+        """Return (delta, raw) for one operand: exactly one is set unless the
+        operand is absent."""
+        if value is None:
+            return None, None
+        key = str(value)
+        if literal_type(key) is None and key in def_locations:
+            return idx - def_locations[key], None
+        return None, key
+
+    @classmethod
+    def encode_instructions(cls, instructions: List[Instruction]) -> List[dict]:
         """
-        Transforms instructions so variable uses become backward integer offsets.
+        Transforms instructions so variable uses become signed integer offsets.
         Returns a list of compact encoded instruction dicts.
         """
         def_locations: Dict[str, int] = {}
-        encoded = []
-
         for idx, instr in enumerate(instructions):
-            # Compute backward deltas for uses
-            arg1_val = instr.arg1
-            arg2_val = instr.arg2
-            arg1_delta = None
-            arg2_delta = None
-            is_const_arg1 = False
-            is_const_arg2 = False
+            defn = instr.defines()
+            if defn:
+                def_locations[defn] = idx
 
+        encoded = []
+        for idx, instr in enumerate(instructions):
             if instr.op == Opcode.PHI:
-                # Predecessor-indexed phi
-                phi_deltas = {}
+                # Predecessor-indexed phi: an int is a delta, a str is raw text.
+                phi_deltas: Dict[str, Any] = {}
                 for pred_id, var_name in instr.phi_args.items():
-                    if var_name in def_locations:
-                        phi_deltas[pred_id] = idx - def_locations[var_name]
-                    else:
-                        phi_deltas[pred_id] = 0
+                    delta, raw = cls._operand(var_name, idx, def_locations)
+                    phi_deltas[pred_id] = delta if delta is not None else raw
                 encoded.append({
                     "op": instr.op,
                     "is_phi": True,
                     "phi_deltas": phi_deltas,
                     "line": instr.line,
                 })
+                continue
+
+            is_label_op = instr.op in (Opcode.LABEL, Opcode.JUMP)
+            if is_label_op:
+                arg1_delta, arg1_raw = None, (str(instr.arg1) if instr.arg1 is not None else None)
             else:
-                # Regular instruction
-                if arg1_val is not None and str(arg1_val) in def_locations:
-                    arg1_delta = idx - def_locations[str(arg1_val)]
-                else:
-                    is_const_arg1 = True
-
-                if arg2_val is not None and str(arg2_val) in def_locations:
-                    arg2_delta = idx - def_locations[str(arg2_val)]
-                else:
-                    is_const_arg2 = True
-
-                encoded.append({
-                    "op": instr.op,
-                    "is_phi": False,
-                    "arg1_delta": arg1_delta,
-                    "arg2_delta": arg2_delta,
-                    "arg1_raw": str(arg1_val) if is_const_arg1 and arg1_val is not None else None,
-                    "arg2_raw": str(arg2_val) if is_const_arg2 and arg2_val is not None else None,
-                    "result_label": instr.result if instr.op in (Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE) else None,
-                    "line": instr.line,
-                })
-
-            # Record definition index
-            defn = instr.defines()
-            if defn:
-                def_locations[defn] = idx
+                arg1_delta, arg1_raw = cls._operand(instr.arg1, idx, def_locations)
+            arg2_delta, arg2_raw = cls._operand(instr.arg2, idx, def_locations)
+            encoded.append({
+                "op": instr.op,
+                "is_phi": False,
+                "arg1_delta": arg1_delta,
+                "arg2_delta": arg2_delta,
+                "arg1_raw": arg1_raw,
+                "arg2_raw": arg2_raw,
+                "result_label": instr.result if instr.op in (Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE) else None,
+                "line": instr.line,
+            })
 
         return encoded
 
@@ -251,7 +252,7 @@ class ColumnarBytecodeSerializer:
     Partitions instruction quadruples into 4 dedicated, contiguous streams:
     1. Stream Opcodes: byte-array of operation codes (ADD, SUB, LOAD...)
     2. Stream Flags: operand modes (constant vs. backward delta)
-    3. Stream Deltas: LEB128 backward usage distance integers
+    3. Stream Deltas: zigzag LEB128 signed use-to-definition distances
     4. Stream Immediates: literal and label pool references
     Grouping identical data types dramatically increases run-lengths and entropy compression.
     """
@@ -266,20 +267,25 @@ class ColumnarBytecodeSerializer:
         Opcode.RETURN: 0x16, Opcode.PHI: 0x17, Opcode.PRINT: 0x18,
     }
     REVERSE_OPCODE = {v: k for k, v in OPCODE_MAP.items()}
+    CONTAINER_MAGIC = b"SOAIR\x02"
+    NON_DEFINING = (Opcode.LABEL, Opcode.JUMP, Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE,
+                    Opcode.RETURN, Opcode.PRINT, Opcode.NOP)
 
     @classmethod
     def serialize_columns(cls, encoded_instructions: List[dict]) -> dict:
         """Serializes encoded instructions into 4 columnar byte streams.
 
         The layout is fully reversible (see ``deserialize_columns``):
-          * PHI: flags byte = number of incoming edges; for each edge (sorted by
-            pred_id) the pred_id string is written to ``immediates`` and the
-            backward delta to ``deltas``.
+          * PHI: one flags byte = number of incoming edges, then one flags
+            byte per edge (sorted by pred_id): 0x01 = delta, 0x04 = raw.
+            The pred_id string goes to ``immediates``, followed by the raw
+            text if the argument is raw; a delta goes to ``deltas``.
           * Regular: flags byte is a bitmask -
               bit0 = arg1 delta present   bit1 = arg2 delta present
               bit2 = arg1 raw present     bit3 = arg2 raw present
               bit4 = result_label present
             Fields are emitted in a fixed order: arg1, arg2, result_label.
+        Deltas are signed and written zigzag-coded.
         """
         stream_opcodes = bytearray()
         stream_flags = bytearray()
@@ -300,8 +306,14 @@ class ColumnarBytecodeSerializer:
                 phi_deltas = item["phi_deltas"]
                 stream_flags.append(len(phi_deltas) & 0xFF)
                 for pred_id in sorted(phi_deltas.keys()):
+                    arg = phi_deltas[pred_id]
                     write_imm(str(pred_id))
-                    stream_deltas.extend(LEB128.encode_unsigned(phi_deltas[pred_id]))
+                    if isinstance(arg, int):
+                        stream_flags.append(0x01)
+                        stream_deltas.extend(LEB128.encode_signed(arg))
+                    else:
+                        stream_flags.append(0x04)
+                        write_imm(str(arg))
             else:
                 flag = 0
                 if item.get("arg1_delta") is not None:
@@ -321,12 +333,12 @@ class ColumnarBytecodeSerializer:
 
                 # Fixed emission order: arg1, arg2, result_label
                 if flag & 0x01:
-                    stream_deltas.extend(LEB128.encode_unsigned(item["arg1_delta"]))
+                    stream_deltas.extend(LEB128.encode_signed(item["arg1_delta"]))
                 elif flag & 0x04:
                     write_imm(item["arg1_raw"])
 
                 if flag & 0x02:
-                    stream_deltas.extend(LEB128.encode_unsigned(item["arg2_delta"]))
+                    stream_deltas.extend(LEB128.encode_signed(item["arg2_delta"]))
                 elif flag & 0x08:
                     write_imm(item["arg2_raw"])
 
@@ -359,9 +371,15 @@ class ColumnarBytecodeSerializer:
         i_off = 0  # immediates cursor
         f_off = 0  # flags cursor
 
+        def read_flag():
+            nonlocal f_off
+            val = flags[f_off]
+            f_off += 1
+            return val
+
         def read_delta():
             nonlocal d_off
-            val, read = LEB128.decode_unsigned(deltas, d_off)
+            val, read = LEB128.decode_signed(deltas, d_off)
             d_off += read
             return val
 
@@ -376,14 +394,14 @@ class ColumnarBytecodeSerializer:
         result: List[dict] = []
         for idx in range(count):
             op = cls.REVERSE_OPCODE.get(opcodes[idx], Opcode.NOP)
-            flag = flags[f_off]
-            f_off += 1
+            flag = read_flag()
 
             if op == Opcode.PHI:
-                phi_deltas = {}
+                phi_deltas: Dict[str, Any] = {}
                 for _ in range(flag):
                     pred_id = read_imm()
-                    phi_deltas[pred_id] = read_delta()
+                    kind = read_flag()
+                    phi_deltas[pred_id] = read_delta() if kind & 0x01 else read_imm()
                 result.append({
                     "op": op,
                     "is_phi": True,
@@ -419,11 +437,38 @@ class ColumnarBytecodeSerializer:
         return result
 
     @classmethod
+    def decode_instructions(cls, encoded: List[dict]) -> List[Instruction]:
+        """Turn encoded instruction dicts back into instructions. The value
+        defined by instruction i is named %i; a delta d at instruction i
+        refers to %(i - d). The result equals the encoded list up to a
+        consistent renaming of variables (see core.ir.canonical_form)."""
+        def operand(idx: int, delta: Optional[int], raw: Optional[str]) -> Optional[str]:
+            if delta is not None:
+                return f"%{idx - delta}"
+            return raw
+
+        instructions: List[Instruction] = []
+        for idx, item in enumerate(encoded):
+            op = item["op"]
+            result = None if op in cls.NON_DEFINING else f"%{idx}"
+            if item.get("is_phi"):
+                phi_args = {pred: (f"%{idx - arg}" if isinstance(arg, int) else arg)
+                            for pred, arg in item["phi_deltas"].items()}
+                instructions.append(Instruction(op=op, result=result, phi_args=phi_args))
+                continue
+            arg1 = operand(idx, item.get("arg1_delta"), item.get("arg1_raw"))
+            arg2 = operand(idx, item.get("arg2_delta"), item.get("arg2_raw"))
+            if op in (Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE):
+                result = item.get("result_label")
+            instructions.append(Instruction(op=op, arg1=arg1, arg2=arg2, result=result))
+        return instructions
+
+    @classmethod
     def pack_container(cls, columns: dict, front_coded_symbols: bytes) -> bytes:
         """Packs columnar streams and front-coded symbols into a unified binary container."""
         container = bytearray()
-        # Magic header 'SOAIR' (Structure-of-Arrays IR)
-        container.extend(b"SOAIR\x01")
+        # Magic header 'SOAIR' (Structure-of-Arrays IR) + format version
+        container.extend(cls.CONTAINER_MAGIC)
 
         container.extend(LEB128.encode_unsigned(columns["instruction_count"]))
 
@@ -442,10 +487,10 @@ class ColumnarBytecodeSerializer:
     @classmethod
     def unpack_container(cls, data: bytes) -> Tuple[dict, bytes]:
         """Unpacks container into separate columnar streams and front-coded symbols."""
-        if not data.startswith(b"SOAIR\x01"):
+        if not data.startswith(cls.CONTAINER_MAGIC):
             raise ValueError("Invalid SOAIR container header")
 
-        offset = 6
+        offset = len(cls.CONTAINER_MAGIC)
         instr_count, read_len = LEB128.decode_unsigned(data, offset)
         offset += read_len
 
@@ -518,16 +563,14 @@ class AdvancedIRCompressionEngine:
         recovered_strings = FrontCodedStringPool.decode(unpacked_sym_bytes)
         assert set(recovered_strings) == set(symbol_names), "Symbol table string pool mismatch!"
 
-        # Full instruction-level round-trip: reconstruct the encoded instruction
-        # dicts from the columnar streams and verify they match the encoder output
-        # exactly (ignoring the non-serialized source `line` field). This proves
-        # jump targets and phi predecessors survive the columnar bitstream.
-        def _strip_line(items):
-            return [{k: v for k, v in it.items() if k != "line"} for it in items]
-
-        reconstructed = ColumnarBytecodeSerializer.deserialize_columns(unpacked_columns)
-        assert reconstructed == _strip_line(encoded_instructions), \
-            "Columnar SoA instruction round-trip mismatch (jump targets / phi preds lost)!"
+        # Full instruction-level round-trip: decode the columnar streams back
+        # into instructions and check that they equal the optimized program up
+        # to a consistent renaming of variables. Comparing the encoder's own
+        # intermediate dicts is not enough: a lossy encoding reproduces itself.
+        reconstructed = ColumnarBytecodeSerializer.decode_instructions(
+            ColumnarBytecodeSerializer.deserialize_columns(unpacked_columns))
+        assert canonical_form(reconstructed) == canonical_form(optimized_instructions), \
+            "Columnar SoA instruction round-trip mismatch!"
 
         # 6. Chordal Register Allocation via Maximum Cardinality Search (Hack's Theorem)
         target_cfg = cfg
