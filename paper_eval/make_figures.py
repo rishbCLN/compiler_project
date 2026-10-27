@@ -108,7 +108,8 @@ def fig_ablation(a):
         grid(ax, "x")
     axes[0].set_yticks(list(range(len(order) + 1)))
     axes[0].set_yticklabels([lbl for _, lbl in order][::-1] + ["Raw TAC (unoptimized)"])
-    fig.supxlabel("Instructions relative to all seven passes (%)", fontsize=7)
+    fig.subplots_adjust(wspace=0.18, bottom=0.16)
+    fig.supxlabel("Instructions relative to all seven passes (%)", fontsize=7, y=0.0)
     save(fig, "fig_ablation.pdf")
 
 

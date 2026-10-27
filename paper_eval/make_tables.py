@@ -240,6 +240,8 @@ def main():
     macro("verZlib", v["zlib"], "{}")
     macro("verPlatform", v["platform"].replace("_", "\\_"), "{}")
     macro("verMachine", v["machine"].replace("_", "\\_"), "{}")
+    os_name = v["platform"].split("-")
+    macro("verOS", f"{os_name[0]} {os_name[1]}" if os_name[0] == "macOS" else os_name[0], "{}")
 
     # ---- Table: existing bytecode formats
     bl = read("baselines.json")

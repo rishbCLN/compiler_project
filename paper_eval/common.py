@@ -42,15 +42,15 @@ BENCHMARKS = [
 
 KERNELS = [
     ("K1", "k01_gcd_lcm.c", "GCD and LCM (Euclid)"),
-    ("K2", "k02_isqrt.c", "Integer square root (Newton)"),
+    ("K2", "k02_isqrt.c", "Integer sqrt (Newton)"),
     ("K3", "k03_modpow.c", "Modular exponentiation"),
-    ("K4", "k04_bitcount.c", "Bit counting by division"),
-    ("K5", "k05_collatz.c", "Collatz sequence lengths"),
+    ("K4", "k04_bitcount.c", "Bit counting"),
+    ("K5", "k05_collatz.c", "Collatz lengths"),
     ("K6", "k06_primes.c", "Primes by trial division"),
-    ("K7", "k07_fibonacci.c", "Fibonacci, iterative and recursive"),
+    ("K7", "k07_fibonacci.c", "Fibonacci (iter., rec.)"),
     ("K8", "k08_adler32.c", "Adler-32 running sums"),
     ("K9", "k09_day_of_week.c", "Day of week (Zeller)"),
-    ("K10", "k10_iir_filter.c", "Fixed-point low-pass filter"),
+    ("K10", "k10_iir_filter.c", "Low-pass filter"),
 ]
 
 
