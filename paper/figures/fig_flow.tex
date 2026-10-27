@@ -20,10 +20,10 @@
   \node[proc, below=of dom] (ssa) {Insert $\phi$ on iterated frontiers; rename along the dominator tree};
   \node[proc, below=5mm of ssa, text width=24mm] (err) {Syntax error: report line and column, stop};
   % ---------------- right column
-  \node[proc, right=9mm of lex] (pass) {Run folding/propagation, value numbering, DCE, CFG simplification, trivial-$\phi$ removal};
-  \node[dec, below=of pass] (fix) {Count changed and $k<10$?};
-  \node[proc, below=of fix] (clir) {Linearize; emit CLIR (opcode byte, LEB128 operands, constant pool)};
-  \node[proc, below=of clir] (enc) {Huffman-code CLIR; build columnar container};
+  \node[proc, right=9mm of lex] (pass) {Run folding/propagation, SCCP, copy propagation, value numbering, DCE, CFG simplification, trivial-$\phi$ removal};
+  \node[dec, below=of pass] (fix) {Program changed and $k<10$?};
+  \node[proc, below=of fix] (clir) {Linearize every function; emit CLIR (opcode byte, tagged LEB128 operands, pruned pool)};
+  \node[proc, below=of clir] (enc) {Canonical-Huffman-code CLIR; build columnar container};
   \node[dec, below=of enc] (small) {Coded container smaller?};
   \node[proc, below=4mm of small, xshift=-10mm, text width=15mm] (yes) {flag 1: store coded bytes};
   \node[proc, below=4mm of small, xshift=10mm, text width=15mm] (no) {flag 0: store raw bytes};

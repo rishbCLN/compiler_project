@@ -104,6 +104,13 @@ def main():
         (r["id"], r["focus"], r["source_bytes"], r["functions"], r["inputs"], r["tac_instructions"],
          r["blocks"], r["edges"], r["phis"]) for r in m])
 
+    for tag, rows in (("S", S), ("K", K)):
+        macro(f"src{tag}Min", min(r["source_bytes"] for r in rows))
+        macro(f"src{tag}Max", max(r["source_bytes"] for r in rows))
+    macro("inputsKMin", min(r["inputs"] for r in K))
+    macro("inputsKMax", max(r["inputs"] for r in K))
+    macro("benchCount", len(m))
+
     # ---- Table: optimization
     write("tab_opt_rows.tex", [
         (r["id"], r["tac_instructions"], r["opt_instructions_base_passes"], r["opt_instructions"],
@@ -139,6 +146,18 @@ def main():
     macro("vnHitsBench", sum(r["passes"]["gvn_eliminations"] for r in m))
     grown = [r["id"] for r in m if r["opt_text_bytes"] > r["raw_text_bytes"]]
     macro("textGrownCount", len(grown))
+    lo, hi = rng([100 * (r["ssa_text_bytes"] - r["raw_text_bytes"]) / r["raw_text_bytes"] for r in m])
+    macro("ssaTextGrowMin", lo, "{}")
+    macro("ssaTextGrowMax", hi, "{}")
+    lo, hi = rng([100 * (r["ssa_instructions"] - r["tac_instructions"]) / r["tac_instructions"] for r in m])
+    macro("ssaInstrGrowMin", lo, "{}")
+    macro("ssaInstrGrowMax", hi, "{}")
+    macro("kRawText", sum(r["raw_text_bytes"] for r in K))
+    macro("kOptText", sum(r["opt_text_bytes"] for r in K))
+    macro("kPhiBytes", sum(r["opt_text_growth"]["phi_line_bytes"] for r in K))
+    macro("kSuffixBytes", sum(r["opt_text_growth"]["version_suffix_bytes"] for r in K))
+    macro("kRemovedInstr", sum(r["tac_instructions"] - r["opt_instructions"] for r in K))
+    macro("textGrownIds", ", ".join(grown), "{}")
     s4 = next(r for r in m if r["id"] == "S4")
     macro("sFourClir", s4["clir_bytes"])
     macro("sFourPool", s4["clir_pool_bytes"])
@@ -210,6 +229,7 @@ def main():
     lo, hi = rng([reduction(e["opt_text_best_framed"], e["clir"]) for e in sc])
     macro("scaleCmpMin", lo, "{}")
     macro("scaleCmpMax", hi, "{}")
+    macro("scaleClirBrotliWins", sum(1 for e in sc if e["clir_brotli"] < e["opt_text_best_framed"]))
     lo, hi = rng([reduction(e["clir"], e["clir_brotli"]) for e in sc])
     macro("scaleBrotliGainMin", lo, "{}")
     macro("scaleBrotliGainMax", hi, "{}")
@@ -262,6 +282,8 @@ def main():
     macro("optShareMin", lo, "{}")
     macro("optShareMax", hi, "{}")
     macro("timingRuns", read("measure.json")["timing_runs"])
+    stages = ("front", "tac", "cfg_dom", "ssa", "opt", "clir_huffman", "columnar")
+    macro("optLargestCount", sum(1 for r in m if max(stages, key=lambda k: r["time_ms"][k]) == "opt"))
 
     # ---- Differential testing
     d = read("difftest.json")
@@ -283,6 +305,7 @@ def main():
     macro("diffInputPrograms", d["input_programs"])
     macro("diffReleasedDiffer", v["released"]["programs"] - v["released"]["agree"])
     macro("diffReleasedAgree", pct(v["released"]["agreement_percent"]), "{}")
+    macro("diffReleasedRate", pct(100 - v["released"]["agreement_percent"]), "{}")
     macro("diffMinInstr", d["raw_instructions"]["min"])
     macro("diffMaxInstr", d["raw_instructions"]["max"])
     macro("diffTotalInstr", d["raw_instructions"]["total"])

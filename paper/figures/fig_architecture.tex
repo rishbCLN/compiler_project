@@ -22,12 +22,12 @@
   \node[box, text width=22mm, below=14mm of src] (cfg) {Leader-based\\CFG builder};
   \node[box, text width=24mm, right=6mm of cfg] (dom) {Dominator sets,\\immediate dominators,\\dominance frontiers};
   \node[box, text width=24mm, right=6mm of dom] (ssa) {Semi-pruned SSA:\\$\phi$ placement\\and renaming};
-  \node[box, text width=46mm, right=6mm of ssa] (opt) {Optimizer, iterated to a fixed point:\\folding and propagation, dominator-\\scoped value numbering, DCE, CFG\\simplification, trivial-$\phi$ removal};
+  \node[box, text width=46mm, right=6mm of ssa] (opt) {Optimizer, iterated to a fixed point:\\folding, SCCP, copy propagation,\\dominator-scoped value numbering,\\DCE, CFG simplification, trivial-$\phi$};
   % ---------------- encodings
   \node[box, text width=32mm, anchor=north west] (clir) at ($(cfg.west |- opt.south)+(0,-14mm)$)
-       {\clir{} bytecode: opcode\\byte, LEB128 operands,\\typed constant pool};
-  \node[box, text width=28mm, right=6mm of clir] (huff) {Static Huffman coder\\(frequency table\\and bit payload)};
-  \node[box, text width=46mm, right=10mm of huff] (soa) {Columnar container: opcode, flag,\\backward-delta and immediate\\streams, front-coded names;\\Huffman applied only if smaller};
+       {\clir{} bytecode: opcode\\byte, tagged LEB128\\operands, pruned pool};
+  \node[box, text width=28mm, right=6mm of clir] (huff) {Canonical Huffman coder\\(code lengths\\and bit payload)};
+  \node[box, text width=46mm, right=10mm of huff] (soa) {Columnar container: opcode, flag,\\signed-delta and immediate\\streams, front-coded names;\\Huffman applied only if smaller};
   % ---------------- program flow
   \draw[arr] (src) -- (parse);
   \draw[arr] (parse) -- (tac);

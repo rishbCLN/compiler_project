@@ -18,9 +18,9 @@
   \node[mod] (cfg) at (45mm,0) {\textbf{cfg.py}\\ \texttt{build} (leaders, edges), \texttt{prune\_unreachable\_blocks}, \texttt{linearize}};
   \node[mod, below=2mm of cfg.south, anchor=north] (dom) {\textbf{dominator.py}\\ \texttt{compute\_dominators}, \texttt{compute\_immediate\_dominators}, \texttt{compute\_dominance\_frontiers}};
   \node[mod, below=2mm of dom.south, anchor=north] (ssa) {\textbf{ssa.py}\\ \texttt{insert\_phi\_functions}, \texttt{rename\_variables}};
-  \node[mod, below=2mm of ssa.south, anchor=north] (opt) {\textbf{optimizer.py}\\ \texttt{optimize}: folding/propagation, value numbering, DCE, CFG simplification, trivial-$\phi$ removal};
+  \node[mod, below=2mm of ssa.south, anchor=north] (opt) {\textbf{optimizer.py}\\ \texttt{optimize}: folding/propagation, SCCP, copy propagation, value numbering, DCE, CFG simplification, trivial-$\phi$ removal};
   % column 3: back end and interfaces
-  \node[mod] (bin) at (90mm,0) {\textbf{binary\_compression.py}\\ \texttt{LEB128}, \texttt{HuffmanCompressor},\\ \texttt{BytecodeEmitter.}\\ \texttt{\ \ serialize\_program}};
+  \node[mod] (bin) at (90mm,0) {\textbf{binary\_compression.py}\\ \texttt{LEB128}, \texttt{HuffmanCompressor}\\ (canonical), \texttt{BytecodeEmitter.}\\ \texttt{\ \ serialize\_module}, \texttt{BytecodeDecoder}};
   \node[mod, below=2mm of bin.south, anchor=north] (adv) {\textbf{advanced\_compression.py}\\ \texttt{SSABackwardDeltaEncoder},\\ \texttt{ColumnarBytecodeSerializer},\\ \texttt{FrontCodedStringPool},\\ \texttt{RPOBlockScheduler}};
   \node[mod, below=2mm of adv.south, anchor=north] (ui) {\textbf{main.py, api/server.py, web/}\\ CLI; HTTP endpoints \texttt{/api/compile}, \texttt{/api/samples}, \texttt{/api/export}; Cytoscape.js and Chart.js views};
   % lanes
