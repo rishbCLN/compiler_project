@@ -185,6 +185,6 @@ direction. We have confirmed that this use is permitted under the course and ins
 ### 15. (Minor) IEEE Access front matter
 
 The manuscript now uses the current official IEEE Access LaTeX template (13 May 2026), and the footer shows volume 14,
-2026. The `\history` dates and the DOI are left in the form of the official template, which IEEE fills in on
-publication; the obsolete `ACCESS.2017.DOI` and "VOLUME 4, 2016" placeholders are gone. Biographies of all four
+2026. The placeholders are gone: the header now gives the submission date (October 27, 2026), the DOI line says that
+the DOI is to be assigned by IEEE, and "VOLUME 4, 2016" is replaced. Biographies of all four
 authors have been added, in the template's form without photographs.
