@@ -63,3 +63,16 @@ def test_folding_uses_c_truncating_division(a, b, quot, rem):
 def test_division_by_zero_is_not_folded():
     _, _, _, opt, _ = _compile("int z = 0;\nint x = 5 / z;\nprint(x);\n")
     assert any(i.op == Opcode.DIV for i in opt)
+
+
+# ------------------------------------------------- Front end (found in revision)
+
+def test_temporaries_do_not_overwrite_user_variables_named_like_temps():
+    """A user variable called t1 used to share its name with the generator's
+    temporary t1, so `int t1 = 9; int a = 1 + 2 + 3; print(t1);` printed 1."""
+    code = "int t1 = 9;\nint a = 1 + 2 + 3;\nprint(t1);\nprint(a);\n"
+    _, _, _, opt, raw = _compile(code)
+    assert _printed_literals(opt) == ["9", "6"]
+    user_defs = {"t1", "a"}
+    temps = {i.result for i in raw if i.result and i.result not in user_defs}
+    assert temps and all(t.startswith("_t") for t in temps)

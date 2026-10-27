@@ -20,13 +20,40 @@ class IRGenerator:
         self.instructions: List[Instruction] = []
         self.temp_counter = 0
         self.label_counter = 0
+        self.temp_prefix = "t"
         self.symbol_table = SymbolTable()
         self.constant_pool = ConstantPool()
 
     def new_temp(self) -> str:
-        temp_name = f"t{self.temp_counter}"
+        temp_name = f"{self.temp_prefix}{self.temp_counter}"
         self.temp_counter += 1
         return temp_name
+
+    @staticmethod
+    def _collect_identifiers(node: Any, names: set):
+        """Collect every variable name that appears in the AST."""
+        if isinstance(node, list):
+            for item in node:
+                IRGenerator._collect_identifiers(item, names)
+            return
+        if not isinstance(node, ASTNode):
+            return
+        if isinstance(node, (VarDeclNode, AssignNode, VariableNode)):
+            names.add(node.name)
+        for value in node.__dict__.values():
+            if isinstance(value, (ASTNode, list)):
+                IRGenerator._collect_identifiers(value, names)
+
+    def _choose_temp_prefix(self, ast: ProgramNode) -> str:
+        """Temporaries are named t0, t1, ... unless the program itself declares
+        a variable of that shape (e.g. `int t1`); then the prefix is lengthened
+        with underscores until no temporary can overwrite a user variable."""
+        names: set = set()
+        self._collect_identifiers(ast, names)
+        prefix = "t"
+        while any(n.startswith(prefix) and n[len(prefix):].isdigit() for n in names):
+            prefix = "_" + prefix
+        return prefix
 
     def new_label(self, prefix: str = "L") -> str:
         lbl = f"{prefix}{self.label_counter}"
@@ -42,6 +69,7 @@ class IRGenerator:
         self.instructions.clear()
         self.temp_counter = 0
         self.label_counter = 0
+        self.temp_prefix = self._choose_temp_prefix(ast)
 
         for stmt in ast.statements:
             self.visit(stmt)
