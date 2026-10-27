@@ -333,3 +333,82 @@ def test_optimized_random_programs_behave_like_raw_tac(passes):
         expected = observe(run_tac, raw)
         assert expected[0] == "ok"
         assert observe(run_cfg, cfg) == expected, f"seed {90_000 + seed}"
+
+
+# ------------------------------------------------------------- Comment 5
+
+import re
+
+from paper_eval.pipeline import compile_source
+
+KERNELS = sorted(glob.glob("benchmarks/kernels/*.c"))
+
+
+def _kernel(path):
+    src = open(path, encoding="utf-8").read()
+    inputs = [int(x) for x in re.search(r"// input:(.*)", src).group(1).split()]
+    return src, inputs
+
+
+def test_functions_input_and_scanf_are_compiled():
+    code = """
+    int twice(int a) { return a + a; }
+    int main() {
+        int x;
+        scanf("%d", &x);
+        int y = input();
+        print(twice(x) + y);
+        return 0;
+    }
+    """
+    c = compile_source(code)
+    assert [u.name for u in c.units] == ["main", "twice"]
+    ops = {i.op for i in c.main.raw}
+    assert Opcode.READ in ops and Opcode.CALL in ops
+    assert [i.op for i in c.units[1].raw][:1] == [Opcode.PARAM]
+    out = observe(run_cfg, c.cfg_module("opt_cfg"), [20, 2])
+    assert out == ("ok", [42, ("ret", 0)])
+
+
+def test_read_and_call_are_not_removed_or_folded():
+    """An unused input() still consumes input and a call with an unused
+    result may print, so neither is dead code."""
+    code = """
+    int noisy(int a) { print(a); return a; }
+    int unused = input();
+    int r = noisy(7);
+    print(input());
+    """
+    c = compile_source(code)
+    assert sum(1 for i in c.main.opt if i.op == Opcode.READ) == 2
+    assert any(i.op == Opcode.CALL for i in c.main.opt)
+    assert observe(run_cfg, c.cfg_module("opt_cfg"), [1, 2]) == ("ok", [7, 2, ("ret", None)])
+
+
+@pytest.mark.parametrize("path", KERNELS)
+def test_kernels_survive_optimization_and_encoding(path):
+    src, inputs = _kernel(path)
+    c = compile_source(src)
+    expected = observe(run_tac, c.raw_module(), inputs)
+    assert expected[0] == "ok"
+    assert observe(run_cfg, c.cfg_module("ssa_cfg"), inputs) == expected
+    assert observe(run_cfg, c.cfg_module("opt_cfg"), inputs) == expected
+    package = bytes(BytecodeEmitter().serialize_module(c.clir_units()))
+    assert observe(run_cfg, BytecodeDecoder.decode_module_cfgs(package), inputs) == expected
+    functions, _ = BytecodeDecoder.decode_module(package)
+    for unit, (_, blocks) in zip(c.units, functions):
+        decoded = [i for _, instrs in blocks for i in instrs]
+        assert canonical_form(decoded, [b for b, _ in blocks]) == \
+            canonical_form(unit.opt, _block_order(unit.opt_cfg))
+        assert canonical_form(_columnar_roundtrip(unit.opt)) == canonical_form(unit.opt)
+
+
+def test_random_programs_with_input_behave_like_raw_tac():
+    import random as _random
+    for seed in range(40):
+        src = generate(95_000 + seed, n_statements=6 + seed % 10, with_input=True)
+        inputs = [_random.Random(seed).randint(-50, 50) for _ in range(200)]
+        c = compile_source(src)
+        expected = observe(run_tac, c.raw_module(), inputs)
+        assert expected[0] == "ok"
+        assert observe(run_cfg, c.cfg_module("opt_cfg"), inputs) == expected
