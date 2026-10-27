@@ -1,6 +1,6 @@
 # Response to the reviewers
 
-**Manuscript:** Optimize Before You Compress: SSA-Based Compaction of Three-Address Code, Verified by Differential Testing
+**Manuscript:** Optimize Before You Compress: SSA-Based Compaction of Three-Address Code, Verified by Differential Testing  
 **Decision:** Major revision
 
 We thank the reviewer for a careful and constructive report. All fifteen comments are addressed below. Each answer
@@ -147,12 +147,14 @@ zigzag LEB128 and Booleans take only a tag byte. S4 shrinks from 61 bytes (47 of
 
 ### 12. (Major) Release the evaluation scripts
 
-*Done.* The evaluation scripts are in `paper_eval/`, together with their results (`paper_eval/results/*.json`), a README
-and pinned requirements. `python3 paper_eval/run_all.py` regenerates every table, figure and number in about three
-minutes. The scripts used for the first draft were not in the repository; they were rewritten for the revision. The
-Data and Code Availability statement points to the repository and the tag `paper-revision-1`.
-`paper_eval/check_paper.py` checks that every number macro, table file, figure, reference and citation of the manuscript
-resolves. The repository's test suite (113 tests) includes a small differential test.
+*Done.* The evaluation scripts are now part of the repository:
+
+* **Location.** `paper_eval/`, with their results in `paper_eval/results/`, a README and pinned requirements.
+* **One command.** `python3 paper_eval/run_all.py` regenerates every table, figure and number in about three minutes.
+* **History.** The scripts used for the first draft were not in the repository; they were rewritten for the revision.
+* **Availability.** The Data and Code Availability statement points to the repository and the tag `paper-revision-1`.
+* **Checks.** `paper_eval/check_paper.py` checks that every number macro, table file, figure, reference and citation of
+  the manuscript resolves. The repository's test suite (113 tests) includes a small differential test.
 
 ### 13. (Major) IEEE-style references
 
@@ -180,5 +182,5 @@ this letter.]**
 The manuscript now uses the current official IEEE Access LaTeX template (13 May 2026), and the footer shows volume 14,
 2026. The `\history` dates and the DOI are left in the form of the official template, which IEEE fills in on
 publication; the obsolete `ACCESS.2017.DOI` and "VOLUME 4, 2016" placeholders are gone. Author biographies with
-photographs have been added. **[Authors: complete the biographies and replace the placeholder photographs in
-`paper/photos/`.]**
+photographs have been added. **[Authors: complete the biographies and replace the placeholder photographs.]**
+The photographs are in `paper/photos/`.

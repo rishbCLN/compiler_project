@@ -12,3 +12,7 @@ t1*.map
 *.out
 *.xdv
 *.synctex.gz
+
+# PDF builds (upload these, do not commit)
+*.pdf
+!figures/*.pdf
