@@ -31,10 +31,17 @@
 \gdef\xfigwd{0pt}
 \renewcommand{\algorithmicrequire}{\textbf{Input:}}
 \renewcommand{\algorithmicensure}{\textbf{Output:}}
+% Information the authors still have to supply is marked in red.
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
 
 \begin{document}
+%% Front matter as in the current official template (ACCESS_latex_template_20260513).
+%% IEEE fills in the dates and the DOI on publication; they are left as the
+%% template has them. The footer shows the current volume of IEEE Access.
 \history{Date of publication xxxx 00, 0000, date of current version xxxx 00, 0000.}
-\doi{10.1109/ACCESS.2017.DOI}
+\doi{10.1109/ACCESS.2024.0429000}
+\vol{14}
+\year{2026}
 
 \title{Optimize Before You Compress: SSA-Based Compaction of Three-Address Code, Verified by Differential Testing}
 
@@ -53,14 +60,14 @@
 \corresp{Corresponding author: Hrituraj Deb (e-mail: hrituraj.deb2024@vitstudent.ac.in).}
 
 \begin{abstract}
-Software increasingly reaches phones, browsers and embedded devices as portable intermediate code, often as small plug-ins and over-the-air updates, where every byte counts. Three-address code is verbose: literals sit in fresh temporaries, values are recomputed, and dead branches survive. Existing work either shrinks native code inside large production compilers or compresses intermediate code as an opaque file with Brotli, Zstandard or xz, and reported savings rarely separate optimization from encoding. We present a pipeline that converts three-address code to static single assignment form, runs seven passes, including sparse conditional constant propagation and copy propagation, to a fixed point, and writes a self-describing bytecode with variable-length operands. We evaluate seven demonstration programs and ten C kernels that read input and call functions, checking every result with independent decoders, reference interpreters and differential testing. Optimization removed \nredSMin\% to \nredSMax\% of the instructions of the demonstration programs, but only \nredKMin\% to \nredKMax\% of the kernels. Against the best of Brotli, Zstandard and xz applied to the same optimized program as text, the bytecode was \ncmpFramedSMin\% to \ncmpFramedSMax\% smaller on the demonstration programs and \ncmpFramedKMin\% to \ncmpFramedKMax\% smaller on the kernels; with a shared dictionary, the compressors won on \ndictLosersCount{} of the seven small programs. Canonical Huffman coding paid off above about \nhuffHi{} bytes. Differential testing showed that the first release miscompiled \ndiffReleasedDiffer{} of \ndiffPrograms{} random programs (\ndiffReleasedRate\%) by folding division with floor semantics; the corrected pipeline agrees on all of them. Future work will add arrays and pre-trained entropy models.
+Software increasingly reaches phones, browsers and embedded devices as portable intermediate code, often as small plug-ins and over-the-air updates, where every byte counts. Three-address code is verbose: literals sit in fresh temporaries, values are recomputed, and dead branches survive. Existing work either shrinks native code inside large production compilers or compresses intermediate code as an opaque file with Brotli, Zstandard or xz, and reported savings rarely separate optimization from encoding. We present a pipeline that converts three-address code to static single assignment form, runs seven passes, including sparse conditional constant propagation and copy propagation, to a fixed point, and writes a self-describing bytecode with variable-length operands. We evaluate seven demonstration programs and ten C kernels that read input and call functions, checking every result with independent decoders, reference interpreters and differential testing. Optimization removed \nredSMin\% to \nredSMax\% of the instructions of the demonstration programs, but only \nredKMin\% to \nredKMax\% of the kernels. Against the best of Brotli, Zstandard and xz applied to the same optimized program as text, the bytecode was \ncmpFramedSMin\% to \ncmpFramedSMax\% smaller on the demonstration programs and \ncmpFramedKMin\% to \ncmpFramedKMax\% smaller on the kernels; with a shared dictionary, the compressors won on \ndictLosersCount{} of the 7 small programs. Canonical Huffman coding paid off above about \nhuffHi{} bytes. Differential testing showed that the first release miscompiled \ndiffReleasedDiffer{} of \ndiffPrograms{} random programs (\ndiffReleasedRate\%) by folding division with floor semantics; the corrected pipeline agrees on all of them. Future work will add arrays and pre-trained entropy models.
 \end{abstract}
 
 \begin{keywords}
 Bytecode compression, compiler optimization, differential testing, Huffman coding, intermediate representation, static single assignment.
 \end{keywords}
 
-\titlepgskip=-15pt
+\titlepgskip=-21pt
 
 \maketitle
 
@@ -422,7 +429,7 @@ Folding also applies the identities $x+0=x$, $x\cdot1=x$, $x\cdot0=0$ and $x-0=x
 
 Sparse conditional constant propagation~\cite{wegman1991sccp} closes that gap. It assigns every SSA name $x$ a value $\mathcal{V}(x)$ in the lattice $\top \sqsupset c \sqsupset \bot$ (undetermined, the constant $c$, not constant) and only follows CFG edges found executable; a $\phi$-function takes the meet of the arguments on its executable incoming edges,
 \begin{equation}
-\mathcal{V}\big(x\gets\phi(\dots,p\!:\!a_p,\dots)\big)=\bigsqcap_{(p,b)\ \mathrm{executable}}\mathcal{V}(a_p),
+\mathcal{V}\big(x\gets\phi(\dots,p\!:\!a_p,\dots)\big)=\mathop{\sqcap}\limits_{(p,b)\ \mathrm{executable}}\mathcal{V}(a_p),
 \label{eq:sccp}
 \end{equation}
 where $\top\sqcap v=v$, $c\sqcap c=c$, and every other meet gives $\bot$. Input, parameters and call results are $\bot$. Constant definitions become literal loads, constant uses become literals, a branch on a constant becomes a jump or a fall-through, and edges never found executable are removed. Copy propagation then replaces every use of $x$, where $x\gets y$ is a copy, by $y$; in SSA form the definition of $y$ dominates every use of $x$, so the copy becomes dead. Both passes run only on code in SSA form.
@@ -471,7 +478,8 @@ The optimized blocks of every function are linearized in order and written as on
 Variables, labels and blocks are numbered per function in order of first appearance. A value operand is tagged in its lowest bit, $\tau(x)=2r$ for a variable in register $r$ and $\tau(c)=2q+1$ for the literal at index $q$ of the constant pool, so literals that propagation places into instructions are part of the package. The pool is built from the optimized code and holds exactly the literals it refers to, in order of first use; an integer is stored as a zigzag-mapped LEB128 value, a Boolean as a tag byte alone. A $\phi$-argument names its predecessor by block ordinal, and the body lists the blocks of each function, so a decoder can rebuild every CFG and execute the program. With $f$ functions, block counts $b_g$, instruction counts $m_B$ and pool entries of $e_j$ bytes, the package size is
 \begin{equation}
 \begin{aligned}
-|\clir{}| &= 5+\ell(k)+\textstyle\sum_{j=1}^{k} e_j+\ell(f)+\sum_{g=1}^{f}\Big(\ell(b_g)+\sum_{B}\big(\ell(m_B)+\mathit{body}_B\big)\Big),\\
+|\clir{}| &= 5+\ell(k)+\textstyle\sum_{j=1}^{k} e_j+\ell(f)\\
+&\quad+\textstyle\sum_{g=1}^{f}\Big(\ell(b_g)+\sum_{B}\big(\ell(m_B)+\mathit{body}_B\big)\Big),\\
 \mathit{body}_B &= \textstyle\sum_{i\in B}\Big(1+\sum_{j=1}^{k_i}\ell(\tau(v_{i,j}))\Big).
 \end{aligned}
 \label{eq:clir}
@@ -480,12 +488,12 @@ Variables, labels and blocks are numbered per function in order of first appeara
 The canonical Huffman stage (Fig.~\ref{fig:layout}(b)) computes a Huffman code for the $k$ distinct byte values of the package, limited to 15 bits, and stores only the code length of each value; the decoder rebuilds the canonical code~\cite{schwartz1964canonical}, in which codes of equal length are consecutive integers in symbol order. The header holds the input length $n$ as LEB128 and the smallest of three length tables: a list of the $k$ symbols with 4-bit lengths, a 32-byte bitmap with 4-bit lengths, or 256 4-bit lengths. For a byte value $s$ of frequency $f_s$ and code length $\ell_s$,
 \begin{equation}
 \begin{aligned}
-|H| &= \underbrace{\ell(n)+\min\!\big(2+k+\lceil k/2\rceil,\ 33+\lceil k/2\rceil,\ 129\big)}_{h\ \text{(header)}} + \left\lceil \frac{1}{8}\sum_{s} f_s\,\ell_s \right\rceil,\\
-&\qquad \textstyle\sum_s f_s \ell_s \ge n\,\mathcal{H},
+h &= \ell(n)+\min\!\big(2+k+\lceil k/2\rceil,\ 33+\lceil k/2\rceil,\ 129\big),\\
+|H| &= h + \left\lceil \frac{1}{8}\sum_{s} f_s\,\ell_s \right\rceil,\qquad \textstyle\sum_s f_s \ell_s \ge n\,\mathcal{H},
 \end{aligned}
 \label{eq:huff}
 \end{equation}
-where $\mathcal{H}$ is the empirical entropy of the input in bits per byte~\cite{moffat2019huffman}. The header never exceeds 132 bytes. The first release stored a 32-bit frequency for each symbol instead, $h=7+5k$ bytes, up to 1287 bytes; Section~\ref{sec:results} reports both. Writing the payload as about $n\mathcal{H}/8$ bytes, coding saves space only when $n(1-\mathcal{H}/8)$ exceeds the header, which gives the break-even size
+where $h$ is the header and $\mathcal{H}$ the empirical entropy of the input in bits per byte~\cite{moffat2019huffman}. The header never exceeds 132 bytes. The first release stored a 32-bit frequency for each symbol instead, $h=7+5k$ bytes, up to 1287 bytes; Section~\ref{sec:results} reports both. Writing the payload as about $n\mathcal{H}/8$ bytes, coding saves space only when $n(1-\mathcal{H}/8)$ exceeds the header, which gives the break-even size
 \begin{equation}
 n^{\ast} \approx \frac{h}{1-\mathcal{H}/8}.
 \label{eq:breakeven}
@@ -536,7 +544,7 @@ Fig.~\ref{fig:modules} lists the modules of the implementation and their main fu
 \end{figure*}
 
 %% Team contribution, as required by the course content template.
-All four authors contributed equally to the design, implementation and evaluation of these modules, and every module was reviewed by at least one other team member.
+The work on these modules was divided as follows. The front end (lexer, parser, TAC generator, symbol table and constant pool) was designed and implemented by \todo{name(s)}. The control-flow graph, the dominance analysis and the SSA construction were designed and implemented by \todo{name(s)}. The optimizer, including SCCP and copy propagation, was designed and implemented by \todo{name(s)}. The \clir{} bytecode, the Huffman coders and the columnar container were designed and implemented by \todo{name(s)}. The HTTP server and the web front end were built by \todo{name(s)}. The tests, the kernels, the evaluation and the figures were prepared by \todo{name(s)}. Every module was reviewed by at least one other team member.
 
 \subsection{Flow Diagram}
 Fig.~\ref{fig:flow} shows the processing flow for one program. A syntax error stops processing with the line and column of the offending token. Otherwise the program passes through TAC generation, CFG construction, dominance analysis and SSA construction. The optimizer then repeats its seven passes while the program keeps changing, for at most ten rounds. Every function of the program passes through these stages on its own. Finally, the encoder writes the \clir{} package and its Huffman-coded form, builds the columnar container, decides with one comparison whether that container is stored coded or raw, and verifies every round trip before reporting sizes.
@@ -553,9 +561,9 @@ Fig.~\ref{fig:flow} shows the processing flow for one program. A syntax error st
 \label{sec:results}
 %% ===========================================================================
 \subsection{Tools, Configuration and Setup}
-The system is written in Python and runs on the Python~3 standard library alone~\cite{python2024docs}; the web front end uses Cytoscape.js to draw graphs~\cite{franz2023cytoscape}. All measurements were taken with Python \nverPython{} on one machine (\nverPlatform, \nverMachine). The general-purpose compressors were called through Python: Brotli \nverBrotli, Zstandard \nverZstd, zlib \nverZlib{} for DEFLATE, and the standard \texttt{lzma} module for xz. The existing bytecode formats were produced with \nverClang{} and \nverJavac. A compilation is started with \texttt{python3 main.py --input benchmarks/<file>}, and the web front end with \texttt{python3 main.py --web --port 8000}.
+The system is written in Python and runs on the Python~3 standard library alone~\cite{python2024docs}; the web front end uses Cytoscape.js to draw graphs~\cite{franz2023cytoscape}. All measurements were taken with Python \nverPython{} on one machine (\nverOS, \nverMachine). The general-purpose compressors were called through Python: Brotli \nverBrotli, Zstandard \nverZstd, zlib \nverZlib{} for DEFLATE, and the standard \texttt{lzma} module for xz. The existing bytecode formats were produced with \nverClang{} and \nverJavac. A compilation is started with \texttt{python3 main.py -{}-input benchmarks/<file>}, and the web front end with \texttt{python3 main.py -{}-web -{}-port 8000}.
 
-The evaluation scripts are released in the directory \texttt{paper\_eval} of the repository; \texttt{python3 paper\_eval/run\_all.py} runs \texttt{measure}, \texttt{difftest}, \texttt{ablation}, \texttt{scaling}, \texttt{compare}, \texttt{baselines}, \texttt{make\_tables} and \texttt{make\_figures} in sequence and regenerates every table, every data figure and every number quoted in this article. The scripts cross-check the pipeline in five ways: every \clir{} package and every columnar container is decoded without any table from the encoder and compared with the optimized program; every \clir{} package is also rebuilt into control-flow graphs and executed; every Huffman size is predicted with \eqref{eq:huff} and every stream decoded; program behavior is compared by two reference interpreters, one for linear TAC and one for SSA graphs, which follow \eqref{eq:cdiv}; and the kernels are compiled natively and translated to Java, and both must print the same numbers as our pipeline. The repository also contains 113 unit and regression tests, including a small differential test; the 110 that need only the standard library all pass, and the other three exercise optional compressor bindings of the web front end. Fig.~\ref{fig:screenshot} shows the web front end after compiling benchmark S2.
+The evaluation scripts are released in the directory \texttt{paper\_eval} of the repository; \texttt{python3} \path{paper_eval/run_all.py} runs \texttt{measure}, \texttt{difftest}, \texttt{ablation}, \texttt{scaling}, \texttt{compare}, \texttt{baselines}, \texttt{make\_tables} and \texttt{make\_figures} in sequence and regenerates every table, every data figure and every number quoted in this article. The scripts cross-check the pipeline in five ways: every \clir{} package and every columnar container is decoded without any table from the encoder and compared with the optimized program; every \clir{} package is also rebuilt into control-flow graphs and executed; every Huffman size is predicted with \eqref{eq:huff} and every stream decoded; program behavior is compared by two reference interpreters, one for linear TAC and one for SSA graphs, which follow \eqref{eq:cdiv}; and the kernels are compiled natively and translated to Java, and both must print the same numbers as our pipeline. The repository also contains 113 unit and regression tests, including a small differential test; the 110 that need only the standard library all pass, and the other three exercise optional compressor bindings of the web front end. Fig.~\ref{fig:screenshot} shows the web front end after compiling benchmark S2.
 
 \begin{figure}[!t]
 \centering
@@ -598,7 +606,7 @@ Existing formats & LLVM bitcode: \texttt{clang -Oz -g0 -emit-llvm}; Java class f
 \caption{Benchmarks: source size, number of functions (Fn, including the main program) and input values (In); instructions, blocks, edges and $\phi$-functions refer to the code before optimization, summed over all functions.}
 \label{tab:bench}
 \footnotesize
-\setlength{\tabcolsep}{2.4pt}
+\setlength{\tabcolsep}{2.1pt}
 \begin{tabular}{@{}l l r r r r r r r@{}}
 \toprule
 ID & Focus & Source & Fn & In & TAC & Blocks & Edges & $\phi$ \\
@@ -732,7 +740,7 @@ Table~\ref{tab:formats} compares the design of \clir{} with the WebAssembly bina
 \label{tab:formats}
 \footnotesize
 \setlength{\tabcolsep}{2.5pt}
-\begin{tabular}{@{}p{12mm} p{17mm} p{17mm} p{17mm} p{17mm}@{}}
+\begin{tabular}{@{}p{11mm} p{16.5mm} p{16.5mm} p{16.5mm} p{16.5mm}@{}}
 \toprule
  & \clir{} & WebAssembly & LLVM bitcode & Java class \\
 \midrule
@@ -846,7 +854,7 @@ The proposed method removes instructions with seven SSA passes, including SCCP a
 
 The system was implemented in Python with a Cytoscape.js web front end, and evaluated with independent decoders, reference interpreters, native execution of C kernels and differential testing.
 
-Optimization removed \nredSMin\% to \nredSMax\% of the instructions of seven demonstration programs without input, but only \nredKMin\% to \nredKMax\% of ten kernels that read input and call functions. Against the best of Brotli, Zstandard and xz applied to the optimized text, the \clir{} bytecode was \ncmpFramedSMin\% to \ncmpFramedSMax\% smaller on the demonstration programs and \ncmpFramedKMin\% to \ncmpFramedKMax\% smaller on the kernels; without container headers it lost only on S1, and with a shared dictionary the compressors won on \ndictLosersCount{} of the seven small demonstration programs, while \clir{} stayed \ncmpDictKMin\% to \ncmpDictKMax\% smaller on the kernels. Java class files and LLVM bitcode of the kernels were \njavaRatioMin{} to \njavaRatioMax{} and \nbitcodeRatioMin{} to \nbitcodeRatioMax{} times larger, mostly because of metadata and fixed per-file costs. With canonical code lengths instead of a frequency table, Huffman coding paid off above about \nhuffHi{} bytes instead of 5.7~kB. Differential testing showed that the folder of the first release miscompiled \ndiffReleasedDiffer{} of \ndiffPrograms{} random programs; the corrected pipeline agreed on all of them and on \ndiffInputPrograms{} programs with input.
+Optimization removed \nredSMin\% to \nredSMax\% of the instructions of seven demonstration programs without input, but only \nredKMin\% to \nredKMax\% of ten kernels that read input and call functions. Against the best of Brotli, Zstandard and xz applied to the optimized text, the \clir{} bytecode was \ncmpFramedSMin\% to \ncmpFramedSMax\% smaller on the demonstration programs and \ncmpFramedKMin\% to \ncmpFramedKMax\% smaller on the kernels; without container headers it lost only on S1, and with a shared dictionary the compressors won on \ndictLosersCount{} of the 7 small demonstration programs, while \clir{} stayed \ncmpDictKMin\% to \ncmpDictKMax\% smaller on the kernels. Java class files and LLVM bitcode of the kernels were \njavaRatioMin{} to \njavaRatioMax{} and \nbitcodeRatioMin{} to \nbitcodeRatioMax{} times larger, mostly because of metadata and fixed per-file costs. With canonical code lengths instead of a frequency table, Huffman coding paid off above about \nhuffHi{} bytes instead of 5.7~kB. Differential testing showed that the folder of the first release miscompiled \ndiffReleasedDiffer{} of \ndiffPrograms{} random programs; the corrected pipeline agreed on all of them and on \ndiffInputPrograms{} programs with input.
 
 Future work will extend the language with arrays and memory, so that kernels from an established C benchmark suite can be translated, and will measure the pipeline on them. The entropy stage will use a pre-trained or context-modeling coder, and the bytecode will be compared with WebAssembly binaries produced by a WebAssembly toolchain.
 
@@ -982,12 +990,14 @@ Tukaani Project, ``XZ Utils,'' 2024. [Online]. Available: \url{https://github.co
 %% End sections required by the course content template
 %% ---------------------------------------------------------------------------
 \section*{Author Contributions}
-All authors contributed equally to the design, implementation and writing of this work, and all authors read and approved the final manuscript.
+\textbf{Hrituraj Deb:} \todo{design, implementation and evaluation work, and writing}. \textbf{Gautham G:} \todo{contribution}. \textbf{Rishabh Kumar:} \todo{contribution}. \textbf{Aarnav Bhasin:} \todo{contribution}. All authors read and approved the final manuscript.
 
 \section*{Acknowledgements}
-%% IEEE Access requires AI-assisted text to be disclosed here, naming the AI
-%% system and what it was used for. Keep this statement accurate.
-The compiler evaluated in this article was designed and implemented by the authors. The authors used the AI assistant Claude (Anthropic) to draft the manuscript text and to write the evaluation scripts and figures of Section~\ref{sec:results}. All such material was checked against the measured results and revised by the authors, who take full responsibility for the content of this article.
+%% IEEE Access requires AI-assisted work to be disclosed here, naming the AI
+%% system and what it was used for. Before submission, confirm that this use
+%% is permitted under the course and institutional policy, and keep this
+%% statement accurate.
+The compiler evaluated in this article was designed and implemented by the authors. The authors used the AI assistant Claude (Anthropic) to draft the manuscript text and to write the evaluation scripts and the figures of Section~\ref{sec:results}. In the revision, the authors also used it, under their direction, to implement the changes requested by the reviewers: the corrected constant folder, SCCP and copy propagation, the self-describing bytecode with a pruned constant pool, canonical Huffman coding, the corrected columnar container, function and input support, the kernels and the extended evaluation. All such material was checked against the measured results and revised by the authors, who take full responsibility for the content of this article.
 
 \section*{Funding}
 This work received no external funding.
@@ -998,8 +1008,24 @@ The authors declare no competing interests.
 \section*{Data and Code Availability}
 The source code of the compiler, the benchmarks and the evaluation scripts that produce every table, figure and number in this article are available at \url{https://github.com/rishbCLN/compiler_project}, tag \texttt{paper-revision-1}. The scripts are in the directory \texttt{paper\_eval}, together with the measured results; \texttt{python3 paper\_eval/run\_all.py} repeats the evaluation, and \texttt{paper\_eval/README.md} describes each script and the software versions used.
 
-%% Author biographies with photographs (required by IEEE Access for journal
-%% submission) are omitted: the course content template does not ask for them.
+%% Author biographies, as required by IEEE Access. Replace the placeholder
+%% photographs in photos/ and complete the text marked TODO.
+
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{photos/deb.png}}]{Hrituraj Deb}
+is with the School of Computer Science and Engineering, Vellore Institute of Technology, Vellore, India. \todo{degree and year of study; research interests; IEEE membership if any; replace photos/deb.png with a 1\,in $\times$ 1.25\,in photograph}.
+\end{IEEEbiography}
+
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{photos/gautham.png}}]{Gautham G}
+is with the School of Computer Science and Engineering, Vellore Institute of Technology, Vellore, India. \todo{degree and year of study; research interests; IEEE membership if any; replace photos/gautham.png with a 1\,in $\times$ 1.25\,in photograph}.
+\end{IEEEbiography}
+
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{photos/kumar.png}}]{Rishabh Kumar}
+is with the School of Computer Science and Engineering, Vellore Institute of Technology, Vellore, India. \todo{degree and year of study; research interests; IEEE membership if any; replace photos/kumar.png with a 1\,in $\times$ 1.25\,in photograph}.
+\end{IEEEbiography}
+
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{photos/bhasin.png}}]{Aarnav Bhasin}
+is with the School of Computer Science and Engineering, Vellore Institute of Technology, Vellore, India. \todo{degree and year of study; research interests; IEEE membership if any; replace photos/bhasin.png with a 1\,in $\times$ 1.25\,in photograph}.
+\end{IEEEbiography}
 
 \EOD
 

@@ -1,0 +1,14 @@
+# Fonts of the official IEEE Access LaTeX template (Formata, Giovanni, Times).
+# They are licensed to authors with the template and are not redistributed
+# here; copy the t1* files from ACCESS_latex_template_20260513.zip into this
+# directory before compiling (see BUILD.md).
+t1*.pfb
+t1*.tfm
+t1*.fd
+t1*.map
+# LaTeX build products
+*.aux
+*.log
+*.out
+*.xdv
+*.synctex.gz

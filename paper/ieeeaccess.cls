@@ -51,53 +51,206 @@
 \fi
 \fi
 
+%% Font definitions
+
+\def\timesfont{times}%
+
+% FormataOTF et al
+\DeclareFontFamily{T1}{formata}{}
+\DeclareFontShape{T1}{formata}{n}{n}{<->   t1-formata-regular}{}
+\DeclareFontShape{T1}{formata}{n}{it}{<->  t1-formata-italic}{}
+\DeclareFontShape{T1}{formata}{m}{n}{<->   t1-formata-medium}{}
+\DeclareFontShape{T1}{formata}{m}{it}{<->  t1-formata-mediumitalic}{}
+\DeclareFontShape{T1}{formata}{l}{n}{<->   t1-formata-light}{}
+\DeclareFontShape{T1}{formata}{l}{it}{<->  t1-formata-lightitalic}{}
+\DeclareFontShape{T1}{formata}{b}{n}{<->   t1-formata-bold}{}
+\DeclareFontShape{T1}{formata}{b}{it}{<->  t1-formata-bolditalic}{}
+\DeclareFontShape{T1}{formata}{cm}{n}{<->  t1-formata-condmedium}{}
+\DeclareFontShape{T1}{formata}{cm}{it}{<-> t1-formata-condmediumital}{}
+\DeclareFontShape{T1}{formata}{X}{n}{<->   t1-formata-regsymb}{}
+
+\def\biosc#1{{\fontsize{5.5}{8}\selectfont\MakeUppercase{#1}}}
+
+%%%Hack added for small caps <- added from t1ptm.fd
+%\AtBeginDocument{\DeclareFontShape{LY1}{ptm}{m}{sc}{
+%   <-> ptmrc8t
+%}{}
+
+%\DeclareFontShape{LY1}{ptm}{b}{sc}{
+%   <-> ptmbc8t
+%}{}}
+
+%%Custom Math Versions for Formata Varients
+\AtBeginDocument{%
+\DeclareSymbolFont{NewLetters}{T1}{\timesfont}{n}{it}
+
+\DeclareMathSymbol{a}{\mathalpha}{NewLetters}{`a}
+\DeclareMathSymbol{b}{\mathalpha}{NewLetters}{`b}
+\DeclareMathSymbol{c}{\mathalpha}{NewLetters}{`c}
+\DeclareMathSymbol{d}{\mathalpha}{NewLetters}{`d}
+\DeclareMathSymbol{e}{\mathalpha}{NewLetters}{`e}
+\DeclareMathSymbol{f}{\mathalpha}{NewLetters}{`f}
+\DeclareMathSymbol{g}{\mathalpha}{NewLetters}{`g}
+\DeclareMathSymbol{h}{\mathalpha}{NewLetters}{`h}
+\DeclareMathSymbol{i}{\mathalpha}{NewLetters}{`i}
+\DeclareMathSymbol{j}{\mathalpha}{NewLetters}{`j}
+\DeclareMathSymbol{k}{\mathalpha}{NewLetters}{`k}
+\DeclareMathSymbol{l}{\mathalpha}{NewLetters}{`l}
+\DeclareMathSymbol{m}{\mathalpha}{NewLetters}{`m}
+\DeclareMathSymbol{n}{\mathalpha}{NewLetters}{`n}
+\DeclareMathSymbol{o}{\mathalpha}{NewLetters}{`o}
+\DeclareMathSymbol{p}{\mathalpha}{NewLetters}{`p}
+\DeclareMathSymbol{q}{\mathalpha}{NewLetters}{`q}
+\DeclareMathSymbol{r}{\mathalpha}{NewLetters}{`r}
+\DeclareMathSymbol{s}{\mathalpha}{NewLetters}{`s}
+\DeclareMathSymbol{t}{\mathalpha}{NewLetters}{`t}
+\DeclareMathSymbol{u}{\mathalpha}{NewLetters}{`u}
+\DeclareMathSymbol{v}{\mathalpha}{NewLetters}{`v}
+\DeclareMathSymbol{w}{\mathalpha}{NewLetters}{`w}
+\DeclareMathSymbol{x}{\mathalpha}{NewLetters}{`x}
+\DeclareMathSymbol{y}{\mathalpha}{NewLetters}{`y}
+\DeclareMathSymbol{z}{\mathalpha}{NewLetters}{`z}
+\DeclareMathSymbol{A}{\mathalpha}{NewLetters}{`A}
+\DeclareMathSymbol{B}{\mathalpha}{NewLetters}{`B}
+\DeclareMathSymbol{C}{\mathalpha}{NewLetters}{`C}
+\DeclareMathSymbol{D}{\mathalpha}{NewLetters}{`D}
+\DeclareMathSymbol{E}{\mathalpha}{NewLetters}{`E}
+\DeclareMathSymbol{F}{\mathalpha}{NewLetters}{`F}
+\DeclareMathSymbol{G}{\mathalpha}{NewLetters}{`G}
+\DeclareMathSymbol{H}{\mathalpha}{NewLetters}{`H}
+\DeclareMathSymbol{I}{\mathalpha}{NewLetters}{`I}
+\DeclareMathSymbol{J}{\mathalpha}{NewLetters}{`J}
+\DeclareMathSymbol{K}{\mathalpha}{NewLetters}{`K}
+\DeclareMathSymbol{L}{\mathalpha}{NewLetters}{`L}
+\DeclareMathSymbol{M}{\mathalpha}{NewLetters}{`M}
+\DeclareMathSymbol{N}{\mathalpha}{NewLetters}{`N}
+\DeclareMathSymbol{O}{\mathalpha}{NewLetters}{`O}
+\DeclareMathSymbol{P}{\mathalpha}{NewLetters}{`P}
+\DeclareMathSymbol{Q}{\mathalpha}{NewLetters}{`Q}
+\DeclareMathSymbol{R}{\mathalpha}{NewLetters}{`R}
+\DeclareMathSymbol{S}{\mathalpha}{NewLetters}{`S}
+\DeclareMathSymbol{T}{\mathalpha}{NewLetters}{`T}
+\DeclareMathSymbol{U}{\mathalpha}{NewLetters}{`U}
+\DeclareMathSymbol{V}{\mathalpha}{NewLetters}{`V}
+\DeclareMathSymbol{W}{\mathalpha}{NewLetters}{`W}
+\DeclareMathSymbol{X}{\mathalpha}{NewLetters}{`X}
+\DeclareMathSymbol{Y}{\mathalpha}{NewLetters}{`Y}
+\DeclareMathSymbol{Z}{\mathalpha}{NewLetters}{`Z}
+}
+\AtBeginDocument{%
+\DeclareMathSymbol{(}{\mathopen} {operators}{"28}%
+\DeclareMathSymbol{)}{\mathclose}{operators}{"29}%
+\DeclareMathSymbol{[}{\mathopen} {operators}{"5B}%
+\DeclareMathSymbol{]}{\mathclose}{operators}{"5D}%
+
+\DeclareSymbolFont{xsymbols}     {OMS}{cmsy}{m}{n}
+\DeclareMathSymbol{\ddagger}{\mathbin}{xsymbols}{"7A}
+\DeclareMathSymbol{\dagger}{\mathbin}{xsymbols}{"79}
+
+
+\DeclareMathVersion{regular}
+\SetSymbolFont{operators}{regular}{T1}{formata}{n}{n}
+%\SetSymbolFont{letters}     {regular}{MY1}{mtt}{m}{it}
+\SetSymbolFont{NewLetters} {regular}{T1}{formata}{n}{it}
+%\SetSymbolFont{symbols}     {regular}{MY2}{mtt}{m}{n}
+%\SetSymbolFont{largesymbols}{regular}{MY3}{mtt}{m}{n}
+\SetMathAlphabet{\mathrm}{regular}{T1}{formata}{n}{n}
+\SetMathAlphabet{\mathit}{regular}{T1}{formata}{n}{it}
+\SetMathAlphabet{\mathbf}{regular}{T1}{formata}{m}{n}
+\SetMathAlphabet{\mathtt}{regular}{OT1}{pcr}{m}{n}
+\newcommand\regularmath{\@nomath\regularmath\mathversion{regular}}
+
+\DeclareMathVersion{medium}
+\SetSymbolFont{operators}{medium}{T1}{formata}{m}{n}
+%\SetSymbolFont{letters}     {medium}{MY1}{mtt}{b}{it}
+\SetSymbolFont{NewLetters} {medium}{T1}{formata}{m}{it}
+%\SetSymbolFont{symbols}     {medium}{MY2}{mtt}{b}{n}
+%\SetSymbolFont{largesymbols}{medium}{MY3}{mtt}{b}{n}
+\SetMathAlphabet{\mathrm}{medium}{T1}{formata}{m}{n}
+\SetMathAlphabet{\mathit}{medium}{T1}{formata}{m}{it}
+\SetMathAlphabet{\mathbf}{medium}{T1}{formata}{b}{n}
+\SetMathAlphabet{\mathtt}{medium}{OT1}{pcr}{b}{n}
+\newcommand\mediummath{\@nomath\mediummath\mathversion{medium}}
+
+\DeclareMathVersion{black}
+\SetSymbolFont{operators}{black}{T1}{formata}{b}{n}
+%\SetSymbolFont{letters}     {black}{MY1}{mtt}{ub}{it}
+\SetSymbolFont{NewLetters} {black}{T1}{formata}{b}{it}
+%\SetSymbolFont{symbols}     {black}{MY2}{mtt}{ub}{n}
+%\SetSymbolFont{largesymbols}{black}{MY3}{mtt}{ub}{n}
+\SetMathAlphabet{\mathrm}{black}{T1}{formata}{b}{n}
+\SetMathAlphabet{\mathit}{black}{T1}{formata}{b}{it}
+\SetMathAlphabet{\mathbf}{black}{T1}{formata}{b}{n}
+\SetMathAlphabet{\mathtt}{black}{OT1}{pcr}{b}{n}
+\newcommand\blackmath{\@nomath\blackmath\mathversion{black}}
+}
+
+% GiovanniStd
+\DeclareFontFamily{T1}{giovannistd}{}
+\DeclareFontShape{T1}{giovannistd}{n}{it}{<->   t1-giovannistd-bookitalic}{}
+
+\def\putfont#1#2#3#4#5#6{\usefont{#1}{#2}{#3}{#4}\fontsize{#5}{#6}\selectfont}
+
+\font\symbfont=t1-formata-regsymb at 6pt
+\AtBeginDocument{\gdef\copyright{{\symbfont\char'012}}}
 \def\putfont#1#2#3#4#5#6{\usefont{#1}{#2}{#3}{#4}\fontsize{#5}{#6}\selectfont}
 
 \def\textit#1{{\it #1}}%
 \def\textbf#1{{\bf #1}}%
-\def\historyfont{\sffamily\fontencoding{T1}\fontseries{n}\fontshape{n}\fontsize{7}{8.4}\selectfont}%formata reg 7pt
-\def\doifont{\rmfamily\fontencoding{T1}\fontseries{n}\fontsize{6}{7.2}\selectfont\it}%giovannistd-bookitalic 6pt
-\def\titlefont{\sffamily\fontencoding{T1}\fontseries{b}\fontsize{22}{25.4}\selectfont}%formata condmed 22pt
-\def\authorfont{\sffamily\fontencoding{T1}\fontseries{b}\fontsize{9.9}{12}\selectfont}%formata medium 9.9pt
-\def\membershipfont{\sffamily\fontencoding{T1}\fontseries{b}\fontsize{9.9}{12}\selectfont}%formata medium italic 9.9pt
-\def\addressfont{\rmfamily\fontencoding{T1}\fontseries{n}\fontsize{6.6}{8}\selectfont}%times roman 6.6pt
-\def\correspfont{\rmfamily\fontencoding{T1}\fontseries{n}\fontsize{7.7}{9.24}\selectfont}%times roman 7.7pt
-\def\tfootnotefont{\rmfamily\fontencoding{T1}\fontseries{n}\fontsize{7.7}{9.24}\selectfont}%times roman 7.7pt
-\def\abstractfont{\rmfamily\fontencoding{T1}\fontseries{n}\fontsize{10}{12}\selectfont}%times roman 10pt
-\def\indexfont{\rmfamily\fontencoding{T1}\fontseries{n}\fontsize{10}{12}\selectfont}%times roman 10pt
-\def\bodyfont{\rmfamily\fontencoding{T1}\fontseries{n}\fontsize{10}{12}\selectfont}%times roman 10pt
-\def\abstractheadfont{\sffamily\fontencoding{T1}\fontseries{b}\fontsize{10}{12}\selectfont}%formata bold 9pt
-\def\indexheadfont{\sffamily\fontencoding{T1}\fontseries{b}\fontsize{10}{12}\selectfont}%formata bold 9pt
-\def\sectionAfont{\sffamily\fontencoding{T1}\fontseries{b}\fontsize{9}{12}\selectfont}%formata bold 9pt
-\def\sectionBfont{\sffamily\fontencoding{T1}\fontseries{b}\fontshape{sl}\fontsize{9}{12}\selectfont}%formata mediumitalic 9pt
-\def\sectionCfont{\sffamily\fontencoding{T1}\fontseries{n}\fontsize{9}{12}\selectfont}%formata regular 9pt
-\def\sectionDfont{\sffamily\fontencoding{T1}\fontseries{n}\fontshape{sl}\fontsize{9}{12}\selectfont}%formata italic 9pt
-\def\figcapheadfont{\sffamily\fontencoding{T1}\fontseries{b}\fontsize{7}{8.4}\selectfont}%formata bold 7pt
-\def\figcapfont{\def\textit##1{{\sffamily\selectfont\itshape##1}}\sffamily\fontencoding{T1}\fontseries{m}\fontsize{7}{8.4}\selectfont      }%formata medium 7pt
-\def\tablecapheadfont{\sffamily\fontencoding{T1}\fontseries{b}\fontsize{7}{8.4}\selectfont}%formata bold 7pt
-\def\tableheadfont{\sffamily\fontencoding{T1}\fontseries{m}\fontsize{7}{8.4}\selectfont}%formata medium 7pt
-\def\tablecapfont{\def\textit##1{{\sffamily\selectfont\itshape##1}}\sffamily\fontencoding{T1}\fontseries{m}\fontsize{7}{8.4}\selectfont}%formata medium 7pt
-\def\tablebodyfont{\def\textit##1{{\sffamily\selectfont\itshape##1}}\sffamily\fontencoding{T1}\fontseries{n}\fontsize{7}{8.4}\selectfont}%formata regular 7 pt
-\def\tablefootfont{\sffamily\fontencoding{T1}\fontseries{b}\fontsize{7}{8.4}\selectfont}%formata regular 7 pt
-\def\footervolfont{\sffamily\fontencoding{T1}\fontseries{n}\fontsize{6}{7}\selectfont}%formata regular 6pt
-\def\footerpagefont{\sffamily\fontencoding{T1}\fontseries{n}\fontsize{7}{7}\selectfont}%formata regular 7pt
-\def\headerfont{\sffamily\fontencoding{T1}\fontseries{n}\fontsize{7}{7}\selectfont}%formata regular 7pt
-\def\nheaderfont{\sffamily\fontencoding{T1}\fontseries{b}\fontsize{9}{9}\selectfont}%formata regular 7pt
+\def\historyfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{n}\fontshape{n}\fontsize{7}{8.4}\selectfont}%formata reg 7pt
+\def\doifont{\rmfamily\fontencoding{T1}\fontfamily{giovannistd}\fontseries{n}\fontshape{it}\fontsize{6}{7.2}\selectfont}%giovannistd-bookitalic 6pt
+\def\titlefont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{cm}\fontsize{22}{25.4}\selectfont\mediummath}%formata condmed 22pt
+\def\authorfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{m}\fontsize{9.9}{12}\selectfont}%formata medium 9.9pt
+\def\subtitlefont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{cm}\fontsize{16}{18}\selectfont}%formata medium 16pt
+\def\membershipfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{m}\fontsize{9.9}{12}\selectfont}%formata medium italic 9.9pt
+\def\addressfont{\rmfamily\fontencoding{T1}\fontfamily{\timesfont}\fontseries{n}\fontsize{6.6}{8}\selectfont}%times roman 6.6pt
+\def\correspfont{\rmfamily\fontencoding{T1}\fontfamily{\timesfont}\fontseries{n}\fontsize{7.7}{9.24}\selectfont}%times roman 7.7pt
+\def\tfootnotefont{\rmfamily\fontencoding{T1}\fontfamily{\timesfont}\fontseries{n}\fontsize{7.7}{9.24}\selectfont}%times roman 7.7pt
+\def\abstractfont{\rmfamily\fontencoding{T1}\fontfamily{\timesfont}\fontseries{n}\fontsize{10}{12}\selectfont}%times roman 10pt
+\def\indexfont{\rmfamily\fontencoding{T1}\fontfamily{\timesfont}\fontseries{n}\fontsize{10}{12}\selectfont}%times roman 10pt
+\def\bodyfont{\rmfamily\fontencoding{T1}\fontfamily{\timesfont}\fontseries{n}\fontsize{10}{12}\selectfont}%times roman 10pt
+\def\abstractheadfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{b}\fontsize{10}{12}\selectfont}%formata bold 9pt
+\def\indexheadfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{b}\fontsize{10}{12}\selectfont}%formata bold 9pt
+\def\sectionAfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{b}\fontsize{9}{12}\selectfont\blackmath}%formata bold 9pt
+\def\sectionBfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{m}\fontshape{it}\fontsize{9}{12}\selectfont\mediummath}%formata mediumitalic 9pt
+\def\sectionCfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{n}\fontsize{9}{12}\selectfont\regularmath}%formata regular 9pt
+\def\sectionDfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{n}\fontshape{it}\fontsize{9}{12}\selectfont\regularmath}%formata italic 9pt
+\def\figcapheadfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{b}\fontsize{7}{8.4}\selectfont}%formata bold 7pt
+\def\figcapfont{\def\textit##1{{\sffamily\fontshape{it}\selectfont##1}}\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{m}\fontsize{7}{8.4}\selectfont\mediummath      }%formata medium 7pt
+\def\tablecapheadfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{b}\fontsize{7}{8.4}\selectfont}%formata bold 7pt
+\def\tableheadfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{m}\fontsize{7}{8.4}\selectfont\mediummath}%formata medium 7pt
+\def\tablecapfont{\def\textit##1{{\sffamily\fontshape{it}\selectfont##1}}\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{m}\fontsize{7}{8.4}\selectfont\mediummath}%formata medium 7pt
+\def\tablebodyfont{\def\textit##1{{\sffamily\fontshape{it}\selectfont##1}}\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{n}\fontsize{7}{8.4}\selectfont\regularmath}%formata regular 7 pt
+\def\tablefootfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{cm}\fontsize{7}{8.4}\selectfont\regularmath}%formata regular 7 pt
+\def\footervolfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{n}\fontsize{6}{7}\selectfont}%formata regular 6pt
+\def\footerpagefont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{n}\fontsize{7}{7}\selectfont}%formata regular 7pt
+\def\headerfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{n}\fontsize{7}{7}\selectfont\regularmath}%formata regular 7pt
+\def\nheaderfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{b}\fontsize{9}{9}\selectfont\regularmath}%formata regular 7pt
 \def\iheaderfont{\sffamily\fontencoding{T1}\fontseries{m}\fontshape{sl}\fontsize{7}{7}\selectfont}%formata mediumitalic 9pt
-\def\referencefont{\rmfamily\fontencoding{T1}\fontseries{n}\fontsize{7.61}{9}\selectfont}%times roman 7.61pt
-\def\biographyheadfont{\sffamily\fontencoding{T1}\fontseries{m}\fontsize{8}{9.6}\selectfont}%times roman 8pt
-\def\biographyfont{\rmfamily\fontencoding{T1}\fontseries{n}\fontsize{8}{9.6}\selectfont}%times roman 8pt
+\def\referencefont{\rmfamily\fontencoding{T1}\fontfamily{\timesfont}\fontseries{n}\fontsize{7.61}{9}\selectfont}%times roman 7.61pt
+\def\biographyheadfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{m}\fontsize{8}{9.6}\selectfont}%times roman 8pt
+\def\biographyfont{\rmfamily\fontencoding{T1}\fontfamily{\timesfont}\fontseries{n}\fontsize{8}{9.6}\selectfont}%times roman 8pt
 
 \ifjtehm
-\def\correspfont{\sffamily\fontencoding{T1}\fontseries{n}\fontsize{7}{8}\selectfont}%times roman 7.7pt
-\def\tfootnotefont{\sffamily\fontencoding{T1}\fontseries{n}\fontsize{7}{8}\selectfont}%times roman 7.7pt
-\def\abstractheadfont{\sffamily\fontencoding{T1}\fontseries{b}\fontsize{9}{12}\selectfont}%formata bold 9pt
-\def\indexheadfont{\sffamily\fontencoding{T1}\fontseries{b}\fontsize{9}{12}\selectfont}%formata bold 9pt
-\def\titlepageheaderfont{\sffamily\fontencoding{T1}\fontseries{b}\fontsize{9}{12}\selectfont}%formata bold 9pt
+\def\correspfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{n}\fontsize{7}{8}\selectfont}%times roman 7.7pt
+\def\tfootnotefont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{n}\fontsize{7}{8}\selectfont}%times roman 7.7pt
+\def\abstractheadfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{b}\fontsize{9}{12}\selectfont}%formata bold 9pt
+\def\indexheadfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{b}\fontsize{9}{12}\selectfont}%formata bold 9pt
+\def\titlepageheaderfont{\sffamily\fontencoding{T1}\fontfamily{formata}\fontseries{b}\fontsize{9}{12}\selectfont}%formata bold 9pt
 \fi
 
 \AtBeginDocument{%
+\def\linenumberfont{\color{black}\normalfont\fontencoding{T1}\fontfamily{\timesfont}\selectfont\tiny}
+\gdef\@IEEESAVESTATEfontsize{10}%
+\gdef\@IEEESAVESTATEfontbaselineskip{12}%
+\gdef\@IEEESAVESTATEfontencoding{T1}%
+\gdef\@IEEESAVESTATEfontfamily{\timesfont}%
+\gdef\@IEEESAVESTATEfontseries{n}%
+\gdef\@IEEESAVESTATEfontshape{n}%
 %
+\renewcommand{\sfdefault}{formata}%
+\renewcommand{\rmdefault}{\timesfont}%
+\renewcommand{\ttdefault}{pcr}%
 %
 % enable Times now - so that all class options can see the correct font families
 \fontencoding{T1}\selectfont%
@@ -169,7 +322,7 @@
     \setcounter{subsubsection}{0}%
     \setcounter{paragraph}{0}%
     \def\thesection{}%
-    \def\thesectiondis{APPENDIX.}% 
+    \def\thesectiondis{APPENDIX.}%
     \def\thesubsection{\Alph{subsection}}%
     \refstepcounter{section}% update the \ref counter
 %    \@ifmtarg{#1}{\@IEEEappendixsavesection*{{\color{accessblue}\sectionAfont APPENDIX}}%
@@ -193,14 +346,14 @@
     \setcounter{subsubsection}{0}%
     \setcounter{paragraph}{0}%
     \def\thesection{\Alph{section}}%
-    \def\thesectiondis{APPENDIX \Alph{section}}.%
+    \def\thesectiondis{APPENDIX \Alph{section}}%
     \refstepcounter{section}% update the \ref counter
     \setcounter{section}{0}% NEXT \section will be the FIRST appendix
     % redefine \section command for appendices
     % leave \section* as is
 %    \def\section{\@ifstar{\@IEEEappendixsavesection*}{% process the *-form
 %                    \refstepcounter{section}% or is a new section so,
-%                    \@IEEEprocessthesectionargument}}% process the argument 
+%                    \@IEEEprocessthesectionargument}}% process the argument
                                                  % of the normal form
 }
 
@@ -223,8 +376,8 @@
 \@IEEEfigurecaptionsepspace% V1.6 was a hard coded 5pt
 % 3/2001 use footnotesize, not small; use two nonbreaking spaces, not one
 \setbox\@tempboxa\hbox{\strut{\color{accessblue}\figcapheadfont #1. \ }\raggedright\figcapfont#2\strut}%
-%\ifdim \wd\@tempboxa >\columnwidth%
-\ifdim \xfigwd >\columnwidth%
+\ifdim \wd\@tempboxa <\columnwidth%
+%\ifdim \xfigwd >\columnwidth%
 % if caption is longer than a line, let it wrap around
 \setbox\@tempboxa\hbox{{\color{accessblue}\figcapheadfont #1. \ }}%
 \mbox{}\hfill\begin{tabular}{@{}l@{}}\noindent\raggedright\unhbox\@tempboxa\figcapfont#2\end{tabular}\hfill\mbox{}%
@@ -232,7 +385,7 @@
 % allow user to control short figure caption justification (left or center)
 \else%
 %\ifcenterfigcaptions \hbox to\hsize{\footnotesize\hfil\box\@tempboxa\hfil}%
-%\else 
+%\else
 \setbox\@tempboxa\hbox{{\color{accessblue}\figcapheadfont #1. \ }}%
 %\parbox[t]{\columnwidth}
 {\vss\raggedright\noindent\unhbox\@tempboxa\figcapfont#2\vss}%
@@ -353,8 +506,8 @@
 \def\headName{}
 \def\@pubid{}
 \def\markboth#1#2{\def\leftmark{#1}\def\rightmark{#2}}
-\def\thevol{4}
-\def\theyear{2016}
+\def\thevol{11}
+\def\theyear{2023}
 \def\vol#1{\gdef\thevol{#1}}
 \def\year#1{\gdef\theyear{#1}}
 \def\pubid#1{\gdef\@pubid{#1}}
@@ -403,14 +556,14 @@
     \def\@oddhead{\parbox[t]{\textwidth}{\mbox{}\\[-6.3mm]\mbox{}\nheaderfont\color{accessblue}\headName\hfill\headerlogo{\raisebox{-2pt}{\,}}\color{black}\vspace*{-1.5mm}\par\hrulefill}}
     \def\@evenhead{\parbox[t]{\textwidth}{\mbox{}\\[-6.3mm]\mbox{}\headerlogo\hfill\nheaderfont\color{accessblue}\headName{\raisebox{-2pt}{\,}}\color{black}\vspace*{-1.5mm}\par\hrulefill}}
      \def\@oddfoot{\raisebox{3pt}{%%
-       \hbox to 0pc{\hbox to \textwidth{{\footervolfont VOLUME\ \thevol, 2016}\hfill\mbox{}}}%
+       \hbox to 0pc{\hbox to \textwidth{{\footervolfont VOLUME\ \thevol, \theyear}\hfill\mbox{}}}%
        \hbox to 0pc{\hbox to \textwidth{\mbox{}\hfill{\footervolfont\@pubid}\hfill\mbox{}}}%
        \hbox to 0pc{\hbox to \textwidth{\mbox{}\hfill{\footerpagefont\thepage}}}%\hspace*{1.8pc}
        }}
      \def\@evenfoot{\raisebox{3pt}{%
        \hbox to 0pc{\hbox to \textwidth{{\footerpagefont\thepage}\hfill}\mbox{}}\hspace*{1.8pc}%\hspace*{1.8pc}
        \hspace*{-1.8pc}\hbox to 0pc{\hbox to \textwidth{\mbox{}\hfill{\footervolfont\@pubid}\hfill\mbox{}}}%
-       \hbox to 0pc{\hbox to \textwidth{\mbox{}\hfill{\footervolfont VOLUME\ \thevol, 2016}}}\hspace*{1.8pc}% [updated here]
+       \hbox to 0pc{\hbox to \textwidth{\mbox{}\hfill{\footervolfont VOLUME\ \thevol, \theyear}}}\hspace*{1.8pc}% [updated here]
      }}
   }
 % normal page
@@ -418,12 +571,12 @@
      \def\@oddhead{\parbox[t]{\textwidth}{\mbox{}\\[-6.3mm]{\raisebox{-2pt}{\headerfont\rightmark}}\hfill\headerlogoall\mbox{}\vspace*{-1.5mm}\par\hrulefill}}
      \def\@evenhead{\parbox[t]{\textwidth}{\mbox{}\\[-6.3mm]\mbox{}\headerlogoall\hfill{\raisebox{-2pt}{\headerfont\leftmark}}\vspace*{-1.5mm}\par\hrulefill}}
      \def\@oddfoot{\raisebox{8pt}{%
-       \hbox to 0pc{\hbox to \textwidth{{\footervolfont VOLUME\ \thevol, 2016}\hfill\mbox{}}}%
+       \hbox to 0pc{\hbox to \textwidth{{\footervolfont VOLUME\ \thevol, \theyear}\hfill\mbox{}}}%
        \hbox to 0pc{\hbox to \textwidth{\mbox{}\hfill{\footerpagefont\thepage}}}%\hspace*{1.8pc}
        }}
      \def\@evenfoot{\raisebox{8pt}{%
        \hbox to 0pc{\hbox to \textwidth{{\footerpagefont\thepage}\mbox{}\hfill}}\hspace*{1.8pc}%\hspace*{-1.8pc}
-       \hspace*{-1.8pc}\hbox to 0pc{\hbox to \textwidth{\mbox{}\hfill{\footervolfont VOLUME\ \thevol, 2016}}}\hspace*{1.8pc}% [updated here]
+       \hspace*{-1.8pc}\hbox to 0pc{\hbox to \textwidth{\mbox{}\hfill{\footervolfont VOLUME\ \thevol, \theyear}}}\hspace*{1.8pc}% [updated here]
      }}
   }
 \fi
@@ -704,7 +857,7 @@
 \end{minipage}}}}% end if optional argument supplied
 % Make an entry into the table of contents only if we have not done so before
 % one more biography
-% Make an entry for this name into the table of contents 
+% Make an entry for this name into the table of contents
 \addcontentsline{toc}{subsection}{#2}%
 % V1.6 properly handle if a new paragraph should occur while the
 % hanging indent is still active. Do this by redefining \par so
@@ -762,7 +915,7 @@
 \end{minipage}}}}% end if optional argument supplied
 % Make an entry into the table of contents only if we have not done so before
 % one more biography
-% Make an entry for this name into the table of contents 
+% Make an entry for this name into the table of contents
 \addcontentsline{toc}{subsection}{#2}%
 % V1.6 properly handle if a new paragraph should occur while the
 % hanging indent is still active. Do this by redefining \par so
@@ -801,17 +954,17 @@
 % added biography without a photo environment
 \renewenvironment{biographynophoto}[1]{%
 % Make an entry into the table of contents only if we have not done so before
-\if@biographyTOCentrynotmade%
+%\if@biographyTOCentrynotmade%
 % link labels to the biography counter so hyperref will jump
 % to the biography, not the previous section
-\setcounter{biography}{-1}%
-\refstepcounter{biography}%
-\addcontentsline{toc}{section}{Biographies}%
-\global\@biographyTOCentrynotmadefalse%
-\fi%
+%\setcounter{biography}{-1}%
+%\refstepcounter{biography}%
+%\addcontentsline{toc}{section}{Biographies}%
+%\global\@biographyTOCentrynotmadefalse%
+%\fi%
 % one more biography
-\refstepcounter{biography}%
-% Make an entry for this name into the table of contents 
+%\refstepcounter{biography}%
+% Make an entry for this name into the table of contents
 \addcontentsline{toc}{subsection}{#1}%
 \normalfont\biographyfont\interlinepenalty500%
 \vskip 4\baselineskip plus 1fil minus 0\baselineskip%
@@ -819,17 +972,17 @@
 \noindent{\biographyheadfont\uppercase{#1}\ }\@IEEEgobbleleadPARNLSP}{\relax\par\normalfont}
 \renewenvironment{IEEEbiographynophoto}[1]{%
 % Make an entry into the table of contents only if we have not done so before
-\if@biographyTOCentrynotmade%
+%\if@biographyTOCentrynotmade%
 % link labels to the biography counter so hyperref will jump
 % to the biography, not the previous section
-\setcounter{biography}{-1}%
-\refstepcounter{biography}%
-\addcontentsline{toc}{section}{Biographies}%
-\global\@biographyTOCentrynotmadefalse%
-\fi%
+%\setcounter{biography}{-1}%
+%\refstepcounter{biography}%
+%\addcontentsline{toc}{section}{Biographies}%
+%\global\@biographyTOCentrynotmadefalse%
+%\fi%
 % one more biography
-\refstepcounter{biography}%
-% Make an entry for this name into the table of contents 
+%\refstepcounter{biography}%
+% Make an entry for this name into the table of contents
 \addcontentsline{toc}{subsection}{#1}%
 \normalfont\biographyfont\interlinepenalty500%
 \vskip 4\baselineskip plus 1fil minus 0\baselineskip%
@@ -869,7 +1022,7 @@
 #1%
 \end{minipage}}}}% end if optional argument supplied
 % Make an entry into the table of contents only if we have not done so before
-% Make an entry for this name into the table of contents 
+% Make an entry for this name into the table of contents
 \addcontentsline{toc}{subsection}{#2}%
 % V1.6 properly handle if a new paragraph should occur while the
 % hanging indent is still active. Do this by redefining \par so
@@ -907,7 +1060,7 @@
 % added biography without a photo environment
 \newenvironment{ebbiographynophoto}[1]{%
 % Make an entry into the table of contents only if we have not done so before
-% Make an entry for this name into the table of contents 
+% Make an entry for this name into the table of contents
 \addcontentsline{toc}{subsection}{#1}%
 \normalfont\biobodyfont\interlinepenalty500%
 \vspace{\baselineskip}%plus 1fil minus 0\baselineskip%
@@ -926,7 +1079,7 @@
    \ClassError{ieeeaccess}
      {You have not used the command \string\EOD\space at the end of \MessageBreak
       last para in the document. I have reached end of the document searching for it}%
-     {Please put the macro \string\EOD\space in the end of the last para. 
+     {Please put the macro \string\EOD\space in the end of the last para.
      (End of last biography or end of last reference.)}%
    \fi%
   \fi%
@@ -936,8 +1089,8 @@
 \gdef\operator@encoding{T1}
 \gdef\encodingdefault{T1}
 %\def\it{\fontencoding{T1}\selectfont}
-\def\bf{\fontencoding{T1}\fontseries{b}\selectfont}
-\def\rm{\fontencoding{T1}\selectfont}
+\long\def\bf#1{\ifmmode\mathbf{#1}\message{Please use mathbf in math mode instead of bf.}\else\fontencoding{T1}\fontseries{b}\selectfont{#1}\fi}
+\long\def\rm#1{\ifmmode\mathrm{#1}\message{Please use mathrm in math mode instead of rm.}\else\fontencoding{T1}\selectfont{#1}\fi}
 }
 
 \def\headeretal{{\iheaderfont et al.}}

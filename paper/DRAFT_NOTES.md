@@ -1,3 +1,6 @@
+> **Historical.** These are the notes for draft 2, the version that was reviewed. They no longer describe the
+> current manuscript; see `BUILD.md` and `response_to_reviewers.md`.
+
 # Draft 2 — notes for the authors
 
 **Main file:** `ir_compaction_access.tex` → `ir_compaction_access.pdf` (15 pages, IEEE Access class).
