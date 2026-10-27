@@ -227,3 +227,109 @@ def test_canonical_header_is_small():
     old = FrequencyTableHuffman.compress(data)
     assert len(old) - info["payload_bytes"] >= 1287 - 1
     assert FrequencyTableHuffman.decompress(old) == data
+
+
+# ------------------------------------------------------------- Comment 9
+
+from core.cfg import ControlFlowGraph as _CFG
+from paper_eval.generator import generate
+from paper_eval.interp import run_tac, run_cfg, observe
+
+
+def _compile_with(code, passes):
+    ast = Parser(Lexer(code).tokenize()).parse()
+    raw = IRGenerator().generate(ast)
+    raw_copy = [deepcopy(i) for i in raw]
+    cfg = ControlFlowGraph.build(raw)
+    dom = DominanceAnalyzer(cfg)
+    dom.compute_all()
+    ssa_cfg = SSATransformer(cfg, dom).transform()
+    opt = IROptimizer(ssa_cfg, passes=passes)
+    opt_cfg = opt.optimize()
+    return opt, opt_cfg, raw_copy
+
+
+LOOP_INVARIANT_CONSTANT = """
+int k = 7;
+int i = 0;
+while (i < 3) {
+    k = 7;
+    i = i + 1;
+}
+print(k);
+"""
+
+
+def test_sccp_propagates_constants_through_phi():
+    """k reaches the print through a loop-header phi whose arguments are both
+    7. The released folder does not look through phis; SCCP does."""
+    _, base_cfg, _ = _compile_with(LOOP_INVARIANT_CONSTANT, IROptimizer.BASE_PASSES)
+    assert any(i.op == Opcode.PHI for i in base_cfg.linearize())
+    opt, cfg, _ = _compile_with(LOOP_INVARIANT_CONSTANT, None)
+    printed = [i for i in cfg.linearize() if i.op == Opcode.PRINT]
+    assert [str(p.arg1) for p in printed] == ["7"]
+    assert opt.stats["sccp_constants"] > 0
+
+
+def test_sccp_removes_branch_that_depends_on_a_phi():
+    code = """
+    int flag = 0;
+    int i = 0;
+    while (i < 2) {
+        if (flag == 1) {
+            print(99);
+        }
+        flag = 0;
+        i = i + 1;
+    }
+    print(i);
+    """
+    _, base_cfg, _ = _compile_with(code, IROptimizer.BASE_PASSES)
+    assert any(str(i.arg1) == "99" for i in base_cfg.linearize())
+    opt, cfg, raw = _compile_with(code, None)
+    assert not any(str(i.arg1) == "99" for i in cfg.linearize())
+    assert opt.stats["sccp_branches_resolved"] >= 1
+    assert observe(run_cfg, cfg) == observe(run_tac, raw)
+
+
+def test_copy_propagation_lets_value_numbering_remove_instructions():
+    """Value numbering turns a repeated expression into a copy; without copy
+    propagation the copy stays, so the instruction count does not drop."""
+    code = """
+    int i = 0;
+    while (i < 3) {
+        int p = i * 2;
+        int q = i * 2;
+        print(p + q);
+        i = i + 1;
+    }
+    """
+    no_copy = tuple(p for p in IROptimizer.ALL_PASSES if p != "copy_prop")
+    without, cfg_without, _ = _compile_with(code, no_copy)
+    with_cp, cfg_with, raw = _compile_with(code, None)
+    assert without.stats["gvn_eliminations"] >= 1
+    assert len(cfg_with.linearize()) < len(cfg_without.linearize())
+    assert with_cp.stats["copies_propagated"] >= 1
+    assert observe(run_cfg, cfg_with) == observe(run_tac, raw)
+
+
+def test_sccp_and_copy_propagation_skip_non_ssa_code():
+    code = "int x = 1;\nx = x + 1;\nprint(x);\n"
+    raw = IRGenerator().generate(Parser(Lexer(code).tokenize()).parse())
+    expected = observe(run_tac, [deepcopy(i) for i in raw])
+    opt = IROptimizer(_CFG.build(raw))
+    assert not opt.is_ssa()
+    cfg = opt.optimize()
+    assert opt.stats["sccp_constants"] == 0 and opt.stats["copies_propagated"] == 0
+    assert observe(run_cfg, cfg) == expected
+
+
+@pytest.mark.parametrize("passes", [IROptimizer.BASE_PASSES, None])
+def test_optimized_random_programs_behave_like_raw_tac(passes):
+    """A small in-suite version of the differential test in paper_eval/."""
+    for seed in range(60):
+        src = generate(90_000 + seed, n_statements=6 + seed % 12)
+        _, cfg, raw = _compile_with(src, passes)
+        expected = observe(run_tac, raw)
+        assert expected[0] == "ok"
+        assert observe(run_cfg, cfg) == expected, f"seed {90_000 + seed}"
