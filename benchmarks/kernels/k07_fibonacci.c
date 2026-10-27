@@ -26,6 +26,10 @@ int main() {
     scanf("%d %d", &n, &m);
     printf("%d\n", fib_iter(n));
     printf("%d\n", fib_rec(m));
-    printf("%d\n", fib_iter(m) == fib_rec(m));
+    int same = 0;
+    if (fib_iter(m) == fib_rec(m)) {
+        same = 1;
+    }
+    printf("%d\n", same);
     return 0;
 }

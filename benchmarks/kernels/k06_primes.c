@@ -23,7 +23,7 @@ int main() {
     int last = 0;
     scanf("%d", &limit);
     for (int k = 2; k <= limit; k = k + 1) {
-        if (is_prime(k)) {
+        if (is_prime(k) == 1) {
             count = count + 1;
             sum = sum + k;
             last = k;

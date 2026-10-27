@@ -17,7 +17,10 @@ int isqrt(int n) {
 
 int is_square(int n) {
     int r = isqrt(n);
-    return r * r == n;
+    if (r * r == n) {
+        return 1;
+    }
+    return 0;
 }
 
 int main() {

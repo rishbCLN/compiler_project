@@ -1,0 +1,4 @@
+# Evaluation scripts only; the compiler itself needs the Python standard library.
+brotli==1.2.0
+zstandard==0.25.0
+matplotlib==3.10.8

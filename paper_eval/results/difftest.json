@@ -1,0 +1,79 @@
+{
+ "programs": 1000,
+ "raw_instructions": {
+  "min": 12,
+  "max": 935,
+  "total": 325719
+ },
+ "variants": {
+  "released": {
+   "agree": 787,
+   "differ_division": 213,
+   "differ_other": 0,
+   "ssa_differs": 0,
+   "invalid": 0,
+   "programs": 1000,
+   "agreement_percent": 78.7,
+   "example_failing_seeds": [
+    1000003,
+    1000006,
+    1000011,
+    1000012,
+    1000017,
+    1000018,
+    1000020,
+    1000021,
+    1000022,
+    1000026,
+    1000030,
+    1000036,
+    1000039,
+    1000042,
+    1000044,
+    1000045,
+    1000048,
+    1000049,
+    1000061,
+    1000062
+   ]
+  },
+  "corrected": {
+   "agree": 1000,
+   "differ_division": 0,
+   "differ_other": 0,
+   "ssa_differs": 0,
+   "invalid": 0,
+   "programs": 1000,
+   "agreement_percent": 100.0,
+   "example_failing_seeds": []
+  },
+  "all": {
+   "agree": 1000,
+   "differ_division": 0,
+   "differ_other": 0,
+   "ssa_differs": 0,
+   "invalid": 0,
+   "programs": 1000,
+   "agreement_percent": 100.0,
+   "example_failing_seeds": []
+  }
+ },
+ "input_programs": 500,
+ "input_raw_instructions": {
+  "min": 13,
+  "max": 879,
+  "total": 153706
+ },
+ "with_input": {
+  "all": {
+   "agree": 500,
+   "differ_division": 0,
+   "differ_other": 0,
+   "ssa_differs": 0,
+   "invalid": 0,
+   "programs": 500,
+   "agreement_percent": 100.0,
+   "example_failing_seeds": []
+  }
+ }
+}

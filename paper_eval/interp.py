@@ -38,9 +38,26 @@ class StepLimit(Exception):
 UNDEF = object()
 
 
+# Set by floor_semantics(): integer / and % then follow Python's floor rule
+# instead of C's. Used only to classify divergences of the released folder.
+_FLOOR_DIVISION = False
+
+
+class floor_semantics:
+    def __enter__(self):
+        global _FLOOR_DIVISION
+        _FLOOR_DIVISION = True
+
+    def __exit__(self, *exc):
+        global _FLOOR_DIVISION
+        _FLOOR_DIVISION = False
+
+
 def c_div(a: int, b: int) -> int:
     if b == 0:
         raise Trap("division by zero")
+    if _FLOOR_DIVISION:
+        return a // b
     q = abs(a) // abs(b)
     return q if (a < 0) == (b < 0) else -q
 

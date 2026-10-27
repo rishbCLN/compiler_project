@@ -9,13 +9,13 @@ int mod_adler(int x) {
 
 int main() {
     int n;
-    int byte;
+    int value;
     int a = 1;
     int b = 0;
     scanf("%d", &n);
     for (int i = 0; i < n; i = i + 1) {
-        scanf("%d", &byte);
-        a = mod_adler(a + byte);
+        scanf("%d", &value);
+        a = mod_adler(a + value);
         b = mod_adler(b + a);
     }
     printf("%d\n", a);

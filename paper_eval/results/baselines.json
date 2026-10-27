@@ -1,0 +1,135 @@
+{
+ "tools": {
+  "clang": "Apple clang version 17.0.0 (clang-1700.6.3.2)",
+  "javac": "javac 24.0.2",
+  "java": "java version \"24.0.2\" 2025-07-15"
+ },
+ "empty_program": {
+  "bitcode_O2": 2656,
+  "bitcode_Oz": 2672,
+  "java_class": 311,
+  "clir": 13
+ },
+ "kernels": [
+  {
+   "id": "K1",
+   "clir": 141,
+   "bitcode_O2": 5344,
+   "bitcode_O2_deflate": 3919,
+   "bitcode_Oz": 5216,
+   "bitcode_Oz_deflate": 3813,
+   "java_class": 689,
+   "java_class_deflate": 465,
+   "c_lite_matches_native": true,
+   "java_matches_native": true
+  },
+  {
+   "id": "K2",
+   "clir": 174,
+   "bitcode_O2": 5296,
+   "bitcode_O2_deflate": 3959,
+   "bitcode_Oz": 5072,
+   "bitcode_Oz_deflate": 3807,
+   "java_class": 725,
+   "java_class_deflate": 488,
+   "c_lite_matches_native": true,
+   "java_matches_native": true
+  },
+  {
+   "id": "K3",
+   "clir": 195,
+   "bitcode_O2": 5936,
+   "bitcode_O2_deflate": 3998,
+   "bitcode_Oz": 5824,
+   "bitcode_Oz_deflate": 3889,
+   "java_class": 725,
+   "java_class_deflate": 492,
+   "c_lite_matches_native": true,
+   "java_matches_native": true
+  },
+  {
+   "id": "K4",
+   "clir": 190,
+   "bitcode_O2": 5280,
+   "bitcode_O2_deflate": 3983,
+   "bitcode_Oz": 5120,
+   "bitcode_Oz_deflate": 3822,
+   "java_class": 749,
+   "java_class_deflate": 496,
+   "c_lite_matches_native": true,
+   "java_matches_native": true
+  },
+  {
+   "id": "K5",
+   "clir": 189,
+   "bitcode_O2": 5200,
+   "bitcode_O2_deflate": 3911,
+   "bitcode_Oz": 5088,
+   "bitcode_Oz_deflate": 3830,
+   "java_class": 680,
+   "java_class_deflate": 476,
+   "c_lite_matches_native": true,
+   "java_matches_native": true
+  },
+  {
+   "id": "K6",
+   "clir": 197,
+   "bitcode_O2": 5056,
+   "bitcode_O2_deflate": 3771,
+   "bitcode_Oz": 4960,
+   "bitcode_Oz_deflate": 3696,
+   "java_class": 679,
+   "java_class_deflate": 473,
+   "c_lite_matches_native": true,
+   "java_matches_native": true
+  },
+  {
+   "id": "K7",
+   "clir": 170,
+   "bitcode_O2": 5824,
+   "bitcode_O2_deflate": 4303,
+   "bitcode_Oz": 5840,
+   "bitcode_Oz_deflate": 4279,
+   "java_class": 727,
+   "java_class_deflate": 486,
+   "c_lite_matches_native": true,
+   "java_matches_native": true
+  },
+  {
+   "id": "K8",
+   "clir": 106,
+   "bitcode_O2": 4896,
+   "bitcode_O2_deflate": 3355,
+   "bitcode_Oz": 4880,
+   "bitcode_Oz_deflate": 3334,
+   "java_class": 634,
+   "java_class_deflate": 435,
+   "c_lite_matches_native": true,
+   "java_matches_native": true
+  },
+  {
+   "id": "K9",
+   "clir": 243,
+   "bitcode_O2": 5408,
+   "bitcode_O2_deflate": 4105,
+   "bitcode_Oz": 5296,
+   "bitcode_Oz_deflate": 3998,
+   "java_class": 778,
+   "java_class_deflate": 523,
+   "c_lite_matches_native": true,
+   "java_matches_native": true
+  },
+  {
+   "id": "K10",
+   "clir": 212,
+   "bitcode_O2": 5280,
+   "bitcode_O2_deflate": 3569,
+   "bitcode_Oz": 5264,
+   "bitcode_Oz_deflate": 3559,
+   "java_class": 761,
+   "java_class_deflate": 523,
+   "c_lite_matches_native": true,
+   "java_matches_native": true
+  }
+ ]
+}
