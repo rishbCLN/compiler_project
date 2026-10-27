@@ -186,6 +186,5 @@ direction. We have confirmed that this use is permitted under the course and ins
 
 The manuscript now uses the current official IEEE Access LaTeX template (13 May 2026), and the footer shows volume 14,
 2026. The `\history` dates and the DOI are left in the form of the official template, which IEEE fills in on
-publication; the obsolete `ACCESS.2017.DOI` and "VOLUME 4, 2016" placeholders are gone. Author biographies with
-photographs have been added. **[Authors: complete the biographies and replace the placeholder photographs.]**
-The photographs are in `paper/photos/`.
+publication; the obsolete `ACCESS.2017.DOI` and "VOLUME 4, 2016" placeholders are gone. Biographies of all four
+authors have been added, in the template's form without photographs.

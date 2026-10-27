@@ -35,8 +35,5 @@ references and citations without a LaTeX installation.
 
 ## Still to be supplied by the authors
 
-* `\todo{...}` items (printed in red): the individual contributions in
-  Section III-D and in Author Contributions, and the biography text.
-* Photographs in `photos/` (1 in x 1.25 in); the current files are placeholders.
 * Confirm that the AI-use statement in the Acknowledgements is accurate and
   permitted under the course and institutional policy.
