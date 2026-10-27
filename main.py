@@ -80,7 +80,8 @@ def run_cli_pipeline(source_code: str, show_stats: bool = True, export_cir: Opti
             raw_instructions=initial_raw_instructions,
             optimized_instructions=opt_instructions,
             symbol_table=symbol_table,
-            constant_pool=constant_pool
+            constant_pool=constant_pool,
+            cfg=opt_cfg,
         )
 
     # 7. Advanced Architecture: Columnar SoA, RPO Fallthrough, Front-Coding
@@ -197,7 +198,7 @@ def run_cli_pipeline(source_code: str, show_stats: bool = True, export_cir: Opti
         # 8. Mainstream Compression Comparison Table (Huffman vs All Others)
         from core.compression_benchmarks import CompressionBenchmarkSuite
         emitter = BytecodeEmitter(symbol_table, constant_pool)
-        bc_bytes = bytes(emitter.serialize_program(opt_instructions))
+        bc_bytes = bytes(emitter.serialize_program(opt_instructions, cfg=opt_cfg))
         raw_text_bytes = metrics["raw_ir_text_bytes"]
         comp_bench = CompressionBenchmarkSuite.run_benchmark(
             target_payload=bc_bytes,

@@ -8,7 +8,7 @@ from typing import List, Dict, Tuple, Optional, Any
 import struct
 import heapq
 from collections import Counter
-from core.ir import Instruction, Opcode
+from core.ir import Instruction, Opcode, literal_type
 from core.symbol_table import SymbolTable
 from core.constant_pool import ConstantPool
 
@@ -43,6 +43,17 @@ class LEB128:
                 break
             shift += 7
         return result, curr - offset
+
+    @staticmethod
+    def encode_signed(val: int) -> bytearray:
+        """Zigzag-map a signed integer (0, -1, 1, -2, ... -> 0, 1, 2, 3, ...)
+        and write it as unsigned LEB128, so small magnitudes stay one byte."""
+        return LEB128.encode_unsigned(val * 2 if val >= 0 else -val * 2 - 1)
+
+    @staticmethod
+    def decode_signed(data: bytes, offset: int = 0) -> Tuple[int, int]:
+        zz, read = LEB128.decode_unsigned(data, offset)
+        return (zz >> 1) if not (zz & 1) else -((zz + 1) >> 1), read
 
 
 class HuffmanNode:
@@ -186,7 +197,26 @@ class HuffmanCompressor:
 
 
 class BytecodeEmitter:
-    """Emits compact binary bytecode with LEB128 operands from TAC instructions."""
+    """Emits a self-describing CLIR package with LEB128 operands.
+
+    Package layout (version 2)::
+
+        "CLIR" | version (1 byte)
+        LEB128(k)  constant pool: k entries, each a tag byte + payload
+                   (0 = int as zigzag LEB128, 1 = float as 8-byte double,
+                    2 = false, 3 = true, 4 = string as LEB128 length + UTF-8)
+        LEB128(b)  b basic blocks, each LEB128(instruction count) + instructions
+
+    Every instruction is one opcode byte followed by LEB128 operands. A value
+    operand is tagged in its low bit: (register << 1) for a variable and
+    (pool index << 1) | 1 for a literal, so literal operands placed into
+    instructions by constant propagation are stored in the package itself.
+    The pool holds exactly the literals the instructions refer to, in order
+    of first use. A phi argument names its predecessor by block ordinal, so a
+    decoder can rebuild the CFG and execute the program.
+    """
+
+    VERSION = 2
 
     OPCODE_MAP = {
         Opcode.NOP: 0x00,
@@ -216,30 +246,37 @@ class BytecodeEmitter:
         Opcode.PRINT: 0x18,
     }
 
-    def __init__(self, symbol_table: SymbolTable, constant_pool: ConstantPool):
+    POOL_TAGS = {"int": 0, "float": 1, "string": 4}
+
+    def __init__(self, symbol_table: Optional[SymbolTable] = None,
+                 constant_pool: Optional[ConstantPool] = None):
+        # The symbol table and front-end constant pool are accepted for API
+        # compatibility; the package carries its own pruned pool (self.pool).
         self.symbol_table = symbol_table
         self.constant_pool = constant_pool
+        self.pool = ConstantPool()
         # Maps symbol name -> integer register ID
         self.var_to_id: Dict[str, int] = {}
         # Maps label name -> integer label ID
         self.label_to_id: Dict[str, int] = {}
+        # Maps block id -> ordinal (blocks of the package first, then any
+        # predecessor names that are not blocks of the package)
+        self.block_to_id: Dict[str, int] = {}
+        self.id_to_var: Dict[int, str] = {}
+        self.id_to_label: Dict[int, str] = {}
+        self.id_to_block: Dict[int, str] = {}
+        self.pool_bytes = 0
 
     @staticmethod
-    def _classify_const(value: Any) -> str:
+    def classify_operand(value: Any) -> Optional[str]:
+        """Return the literal type of an operand ('int', 'float', 'bool',
+        'string'), or None if the operand names a variable."""
+        return literal_type(value)
+
+    @classmethod
+    def _classify_const(cls, value: Any) -> str:
         """Infer the constant-pool type of a literal from its textual form."""
-        s = str(value)
-        if s in ("true", "false"):
-            return "bool"
-        if s.startswith('"') and s.endswith('"'):
-            return "string"
-        try:
-            if '.' in s:
-                float(s)
-                return "float"
-            int(s)
-            return "int"
-        except ValueError:
-            return "string"
+        return cls.classify_operand(value) or "string"
 
     def get_var_id(self, name: Optional[str]) -> int:
         if name is None:
@@ -255,254 +292,287 @@ class BytecodeEmitter:
             self.label_to_id[label] = len(self.label_to_id)
         return self.label_to_id[label]
 
+    def get_block_id(self, block: str) -> int:
+        if block not in self.block_to_id:
+            self.block_to_id[block] = len(self.block_to_id)
+        return self.block_to_id[block]
+
+    def get_pool_id(self, literal: Any) -> int:
+        text = str(literal)
+        const_type = self._classify_const(text)
+        if const_type == "string" and len(text) >= 2 and text[0] == text[-1] == '"':
+            value: Any = text[1:-1]
+        elif const_type == "bool":
+            value = text == "true"
+        elif const_type == "int":
+            value = int(text)
+        elif const_type == "float":
+            value = float(text)
+        else:
+            value = text
+        return self.pool.register(value, const_type)
+
+    def _value(self, operand: Any) -> bytearray:
+        """Tagged value operand: variable register or literal pool index."""
+        if self.classify_operand(operand) is not None:
+            return LEB128.encode_unsigned((self.get_pool_id(operand) << 1) | 1)
+        return LEB128.encode_unsigned(self.get_var_id(str(operand)) << 1)
+
+    def _optional_value(self, operand: Any) -> bytearray:
+        if operand is None:
+            return LEB128.encode_unsigned(0)
+        tagged, _ = LEB128.decode_unsigned(bytes(self._value(operand)))
+        return LEB128.encode_unsigned(tagged + 1)
+
     def emit_instruction(self, instr: Instruction) -> bytearray:
         buf = bytearray()
-        op_byte = self.OPCODE_MAP.get(instr.op, 0x00)
-        buf.append(op_byte)
+        buf.append(self.OPCODE_MAP.get(instr.op, 0x00))
 
-        # Operand encoding
         if instr.op in (Opcode.LABEL, Opcode.JUMP):
-            lbl_id = self.get_label_id(str(instr.arg1))
-            buf.extend(LEB128.encode_unsigned(lbl_id))
+            buf.extend(LEB128.encode_unsigned(self.get_label_id(str(instr.arg1))))
 
         elif instr.op in (Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE):
-            cond_id = self.get_var_id(str(instr.arg1))
-            lbl_id = self.get_label_id(str(instr.result))
-            buf.extend(LEB128.encode_unsigned(cond_id))
-            buf.extend(LEB128.encode_unsigned(lbl_id))
+            buf.extend(self._value(instr.arg1))
+            buf.extend(LEB128.encode_unsigned(self.get_label_id(str(instr.result))))
 
         elif instr.op == Opcode.LOAD_CONST:
-            res_id = self.get_var_id(instr.result)
-            buf.extend(LEB128.encode_unsigned(res_id))
-            # Look up the already-registered pool index (registration happens in a
-            # pre-pass BEFORE the constant pool is serialized). Fall back to a
-            # (correctly typed) registration only if somehow missing.
-            const_type = self._classify_const(instr.arg1)
-            key = self.constant_pool._get_key(str(instr.arg1), const_type)
-            pool_id = self.constant_pool.value_to_index.get(key)
-            if pool_id is None:
-                pool_id = self.constant_pool.register(str(instr.arg1), const_type)
-            buf.extend(LEB128.encode_unsigned(pool_id))
-
-        elif instr.op == Opcode.ASSIGN:
-            res_id = self.get_var_id(instr.result)
-            src_id = self.get_var_id(str(instr.arg1))
-            buf.extend(LEB128.encode_unsigned(res_id))
-            buf.extend(LEB128.encode_unsigned(src_id))
+            buf.extend(LEB128.encode_unsigned(self.get_var_id(instr.result)))
+            buf.extend(LEB128.encode_unsigned(self.get_pool_id(instr.arg1)))
 
         elif instr.op == Opcode.PHI:
-            res_id = self.get_var_id(instr.result)
-            buf.extend(LEB128.encode_unsigned(res_id))
-            # Number of phi incoming edges
+            buf.extend(LEB128.encode_unsigned(self.get_var_id(instr.result)))
             buf.extend(LEB128.encode_unsigned(len(instr.phi_args)))
-            for pred_id, var_ver in sorted(instr.phi_args.items()):
-                p_id = self.get_label_id(pred_id)
-                v_id = self.get_var_id(var_ver)
-                buf.extend(LEB128.encode_unsigned(p_id))
-                buf.extend(LEB128.encode_unsigned(v_id))
+            for pred_id, value in sorted(instr.phi_args.items()):
+                buf.extend(LEB128.encode_unsigned(self.get_block_id(pred_id)))
+                buf.extend(self._value(value))
 
         elif instr.op in (Opcode.PRINT, Opcode.RETURN):
-            if instr.arg1 is not None:
-                arg_id = self.get_var_id(str(instr.arg1)) + 1
-            else:
-                arg_id = 0
-            buf.extend(LEB128.encode_unsigned(arg_id))
+            buf.extend(self._optional_value(instr.arg1))
 
-        elif instr.op in (Opcode.NEG, Opcode.NOT):
-            # Unary operations: result, arg1 only.
-            res_id = self.get_var_id(instr.result)
-            a1_id = self.get_var_id(str(instr.arg1))
-            buf.extend(LEB128.encode_unsigned(res_id))
-            buf.extend(LEB128.encode_unsigned(a1_id))
+        elif instr.op in (Opcode.ASSIGN, Opcode.NEG, Opcode.NOT):
+            buf.extend(LEB128.encode_unsigned(self.get_var_id(instr.result)))
+            buf.extend(self._value(instr.arg1))
 
         elif instr.op == Opcode.NOP:
-            # No operands.
             pass
 
         else:
             # Binary operations: result, arg1, arg2
-            res_id = self.get_var_id(instr.result)
-            a1_id = self.get_var_id(str(instr.arg1))
-            a2_id = self.get_var_id(str(instr.arg2))
-            buf.extend(LEB128.encode_unsigned(res_id))
-            buf.extend(LEB128.encode_unsigned(a1_id))
-            buf.extend(LEB128.encode_unsigned(a2_id))
+            buf.extend(LEB128.encode_unsigned(self.get_var_id(instr.result)))
+            buf.extend(self._value(instr.arg1))
+            buf.extend(self._value(instr.arg2))
 
         return buf
 
-    def serialize_program(self, instructions: List[Instruction]) -> bytearray:
-        package = bytearray()
-        # Magic bytes: 'C' 'L' 'I' 'R' (C-Lite IR)
-        package.extend(b"CLIR")
-        # Version 1.0
-        package.append(1)
+    @staticmethod
+    def _blocks_of(instructions: List[Instruction], cfg: Optional[Any]) -> List[Tuple[str, List[Instruction]]]:
+        if cfg is not None:
+            ordered = sorted(cfg.blocks.values(),
+                             key=lambda b: int(b.id[2:]) if b.id.startswith("BB") and b.id[2:].isdigit() else 0)
+            blocks = [(b.id, b.instructions) for b in ordered]
+            flat = [i for _, instrs in blocks for i in instrs]
+            if len(flat) == len(instructions) and all(a is b for a, b in zip(flat, instructions)):
+                return blocks
+        # No (matching) CFG: partition the list with the leader rules.
+        from core.cfg import ControlFlowGraph
+        partition = ControlFlowGraph.build(list(instructions))
+        return [(b.id, b.instructions) for b in sorted(
+            partition.blocks.values(), key=lambda b: int(b.id[2:]))]
 
-        # Constant Pool section.
-        # Pre-register every LOAD_CONST literal (with its correct type) BEFORE
-        # serializing the pool, so the serialized header and the bytecode indices
-        # stay consistent. Registering during emit_instruction would mutate the
-        # pool after it had already been written.
-        for instr in instructions:
-            if instr.op == Opcode.LOAD_CONST and instr.arg1 is not None:
-                const_type = self._classify_const(instr.arg1)
-                key = self.constant_pool._get_key(str(instr.arg1), const_type)
-                if key not in self.constant_pool.value_to_index:
-                    self.constant_pool.register(str(instr.arg1), const_type)
+    def _serialize_pool(self) -> bytearray:
+        buf = bytearray(LEB128.encode_unsigned(len(self.pool.entries)))
+        for entry in self.pool.entries:
+            if entry.const_type == "bool":
+                buf.append(3 if entry.value else 2)
+            elif entry.const_type == "int":
+                buf.append(self.POOL_TAGS["int"])
+                buf.extend(LEB128.encode_signed(int(entry.value)))
+            elif entry.const_type == "float":
+                buf.append(self.POOL_TAGS["float"])
+                buf.extend(struct.pack("<d", float(entry.value)))
+            else:
+                raw = str(entry.value).encode("utf-8")
+                buf.append(self.POOL_TAGS["string"])
+                buf.extend(LEB128.encode_unsigned(len(raw)))
+                buf.extend(raw)
+        return buf
 
-        cp_bytes = self.constant_pool.serialize()
-        package.extend(LEB128.encode_unsigned(len(cp_bytes)))
-        package.extend(cp_bytes)
+    def serialize_program(self, instructions: List[Instruction], cfg: Optional[Any] = None) -> bytearray:
+        """Serialize a linear instruction list. Pass the CFG the list was
+        linearized from so that block boundaries (and phi predecessors) are
+        those of the CFG; without it the list is partitioned by leaders."""
+        self.pool = ConstantPool()
+        self.var_to_id.clear()
+        self.label_to_id.clear()
+        self.block_to_id.clear()
 
-        # Instructions section
-        instr_body = bytearray()
-        for instr in instructions:
-            instr_body.extend(self.emit_instruction(instr))
+        blocks = self._blocks_of(instructions, cfg)
+        for block_id, _ in blocks:
+            self.get_block_id(block_id)
 
-        package.extend(LEB128.encode_unsigned(len(instructions)))
-        package.extend(LEB128.encode_unsigned(len(instr_body)))
-        package.extend(instr_body)
+        body = bytearray(LEB128.encode_unsigned(len(blocks)))
+        for _, instrs in blocks:
+            body.extend(LEB128.encode_unsigned(len(instrs)))
+            for instr in instrs:
+                body.extend(self.emit_instruction(instr))
+
+        pool = self._serialize_pool()
+        self.pool_bytes = len(pool)
+        self.body_bytes = len(body)
+
+        package = bytearray(b"CLIR")
+        package.append(self.VERSION)
+        package.extend(pool)
+        package.extend(body)
 
         self.id_to_var = {v: k for k, v in self.var_to_id.items()}
         self.id_to_label = {v: k for k, v in self.label_to_id.items()}
-
+        self.id_to_block = {v: k for k, v in self.block_to_id.items()}
+        self.block_count = len(blocks)
         return package
 
 
 class BytecodeDecoder:
     """
-    Decodes serialized binary bytecode packages (CLIR) back into Intermediate Representation instructions.
-    Performs inverse LEB128 decoding, constant pool lookups, and quadruple reconstruction.
+    Decodes CLIR packages back into Intermediate Representation instructions.
+    The package is self-describing: literals come from its own constant pool.
+    The optional name maps only restore the original spelling of variables,
+    labels and blocks; without them the decoder invents names (v0, L0, B0),
+    which yields the same program up to a consistent renaming.
     """
     REVERSE_OPCODE_MAP = {v: k for k, v in BytecodeEmitter.OPCODE_MAP.items()}
+
+    @staticmethod
+    def _decode_pool(data: bytes, offset: int) -> Tuple[ConstantPool, List[str], int]:
+        pool = ConstantPool()
+        literals: List[str] = []
+        count, r = LEB128.decode_unsigned(data, offset)
+        offset += r
+        for _ in range(count):
+            tag = data[offset]
+            offset += 1
+            if tag == 0:
+                val, r = LEB128.decode_signed(data, offset)
+                offset += r
+                pool.register(val, "int")
+                literals.append(str(val))
+            elif tag == 1:
+                val = struct.unpack_from("<d", data, offset)[0]
+                offset += 8
+                pool.register(val, "float")
+                literals.append(repr(val))
+            elif tag in (2, 3):
+                pool.register(tag == 3, "bool")
+                literals.append("true" if tag == 3 else "false")
+            elif tag == 4:
+                ln, r = LEB128.decode_unsigned(data, offset)
+                offset += r
+                val = data[offset:offset + ln].decode("utf-8")
+                offset += ln
+                pool.register(val, "string")
+                literals.append(f'"{val}"')
+            else:
+                raise ValueError(f"Unknown constant-pool tag {tag}")
+        return pool, literals, offset
+
+    @classmethod
+    def decode_blocks(cls, data: bytes,
+                      id_to_var: Optional[Dict[int, str]] = None,
+                      id_to_label: Optional[Dict[int, str]] = None,
+                      id_to_block: Optional[Dict[int, str]] = None
+                      ) -> Tuple[List[Tuple[str, List[Instruction]]], ConstantPool]:
+        """Decode a package into its basic blocks: [(block name, instructions)]."""
+        if not data or len(data) < 5:
+            return [], ConstantPool()
+        if data[:4] != b"CLIR":
+            raise ValueError(f"Invalid bytecode magic header: {bytes(data[:4])!r}, expected b'CLIR'")
+        version = data[4]
+        if version != BytecodeEmitter.VERSION:
+            raise ValueError(f"Unsupported bytecode version: {version}")
+
+        pool, literals, offset = cls._decode_pool(data, 5)
+
+        var_map = id_to_var or {}
+        label_map = id_to_label or {}
+        block_map = id_to_block or {}
+
+        def var(vid: int) -> str:
+            return var_map.get(vid, f"v{vid}")
+
+        def label(lid: int) -> str:
+            return label_map.get(lid, f"L{lid}")
+
+        def block(bid: int) -> str:
+            return block_map.get(bid, f"B{bid}")
+
+        def read() -> int:
+            nonlocal offset
+            val, r = LEB128.decode_unsigned(data, offset)
+            offset += r
+            return val
+
+        def value() -> str:
+            tagged = read()
+            return literals[tagged >> 1] if tagged & 1 else var(tagged >> 1)
+
+        def optional_value() -> Optional[str]:
+            tagged = read()
+            if tagged == 0:
+                return None
+            tagged -= 1
+            return literals[tagged >> 1] if tagged & 1 else var(tagged >> 1)
+
+        blocks: List[Tuple[str, List[Instruction]]] = []
+        num_blocks = read()
+        for b in range(num_blocks):
+            instructions: List[Instruction] = []
+            for _ in range(read()):
+                op = cls.REVERSE_OPCODE_MAP.get(data[offset], Opcode.NOP)
+                offset += 1
+                if op in (Opcode.LABEL, Opcode.JUMP):
+                    instructions.append(Instruction(op=op, arg1=label(read())))
+                elif op in (Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE):
+                    cond = value()
+                    instructions.append(Instruction(op=op, arg1=cond, result=label(read())))
+                elif op == Opcode.LOAD_CONST:
+                    res = var(read())
+                    instructions.append(Instruction(op=op, result=res, arg1=literals[read()]))
+                elif op == Opcode.PHI:
+                    res = var(read())
+                    phi_args = {}
+                    for _ in range(read()):
+                        pred = block(read())
+                        phi_args[pred] = value()
+                    instructions.append(Instruction(op=op, result=res, phi_args=phi_args))
+                elif op in (Opcode.PRINT, Opcode.RETURN):
+                    instructions.append(Instruction(op=op, arg1=optional_value()))
+                elif op in (Opcode.ASSIGN, Opcode.NEG, Opcode.NOT):
+                    res = var(read())
+                    instructions.append(Instruction(op=op, result=res, arg1=value()))
+                elif op == Opcode.NOP:
+                    instructions.append(Instruction(op=op))
+                else:
+                    res = var(read())
+                    a1 = value()
+                    instructions.append(Instruction(op=op, result=res, arg1=a1, arg2=value()))
+            blocks.append((block(b), instructions))
+        return blocks, pool
 
     @classmethod
     def decode_program(cls, data: bytes,
                        id_to_var: Optional[Dict[int, str]] = None,
-                       id_to_label: Optional[Dict[int, str]] = None) -> Tuple[List[Instruction], ConstantPool]:
-        """
-        Decodes a binary bytecode package into reconstructed Instruction objects.
-        Returns the decoded instructions list and the deserialized ConstantPool.
-        """
-        if not data or len(data) < 5:
-            return [], ConstantPool()
+                       id_to_label: Optional[Dict[int, str]] = None,
+                       id_to_block: Optional[Dict[int, str]] = None) -> Tuple[List[Instruction], ConstantPool]:
+        """Decode a package into a flat instruction list and its constant pool."""
+        blocks, pool = cls.decode_blocks(data, id_to_var, id_to_label, id_to_block)
+        return [i for _, instrs in blocks for i in instrs], pool
 
-        offset = 0
-        magic = data[offset:offset + 4]
-        offset += 4
-        if magic != b"CLIR":
-            raise ValueError(f"Invalid bytecode magic header: {magic!r}, expected b'CLIR'")
-        version = data[offset]
-        offset += 1
-        if version != 1:
-            raise ValueError(f"Unsupported bytecode version: {version}")
-
-        # 1. Constant Pool section
-        cp_len, read_len = LEB128.decode_unsigned(data, offset)
-        offset += read_len
-        cp_bytes = data[offset:offset + cp_len]
-        offset += cp_len
-        constant_pool = ConstantPool.deserialize(cp_bytes)
-
-        # 2. Instructions section
-        num_instrs, read_len = LEB128.decode_unsigned(data, offset)
-        offset += read_len
-        instr_body_len, read_len = LEB128.decode_unsigned(data, offset)
-        offset += read_len
-
-        body_end = offset + instr_body_len
-        instructions: List[Instruction] = []
-
-        var_map = id_to_var or {}
-        label_map = id_to_label or {}
-
-        def resolve_var(vid: int) -> str:
-            if vid in var_map:
-                return var_map[vid]
-            return f"v{vid}"
-
-        def resolve_label(lid: int) -> str:
-            if lid in label_map:
-                return label_map[lid]
-            return f"L{lid}"
-
-        while offset < body_end and len(instructions) < num_instrs:
-            op_byte = data[offset]
-            offset += 1
-            op = cls.REVERSE_OPCODE_MAP.get(op_byte, Opcode.NOP)
-
-            if op in (Opcode.LABEL, Opcode.JUMP):
-                lbl_id, r = LEB128.decode_unsigned(data, offset)
-                offset += r
-                instructions.append(Instruction(op=op, arg1=resolve_label(lbl_id)))
-
-            elif op in (Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE):
-                cond_id, r = LEB128.decode_unsigned(data, offset)
-                offset += r
-                lbl_id, r2 = LEB128.decode_unsigned(data, offset)
-                offset += r2
-                instructions.append(Instruction(op=op, arg1=resolve_var(cond_id), result=resolve_label(lbl_id)))
-
-            elif op == Opcode.LOAD_CONST:
-                res_id, r = LEB128.decode_unsigned(data, offset)
-                offset += r
-                pool_id, r2 = LEB128.decode_unsigned(data, offset)
-                offset += r2
-                entry = constant_pool.get_entry(pool_id)
-                val = entry.value if entry else pool_id
-                instructions.append(Instruction(op=op, result=resolve_var(res_id), arg1=val))
-
-            elif op == Opcode.ASSIGN:
-                res_id, r = LEB128.decode_unsigned(data, offset)
-                offset += r
-                src_id, r2 = LEB128.decode_unsigned(data, offset)
-                offset += r2
-                instructions.append(Instruction(op=op, result=resolve_var(res_id), arg1=resolve_var(src_id)))
-
-            elif op == Opcode.PHI:
-                res_id, r = LEB128.decode_unsigned(data, offset)
-                offset += r
-                num_edges, r2 = LEB128.decode_unsigned(data, offset)
-                offset += r2
-                phi_args = {}
-                for _ in range(num_edges):
-                    p_id, r_p = LEB128.decode_unsigned(data, offset)
-                    offset += r_p
-                    v_id, r_v = LEB128.decode_unsigned(data, offset)
-                    offset += r_v
-                    phi_args[resolve_label(p_id)] = resolve_var(v_id)
-                instructions.append(Instruction(op=op, result=resolve_var(res_id), phi_args=phi_args))
-
-            elif op in (Opcode.PRINT, Opcode.RETURN):
-                arg_id, r = LEB128.decode_unsigned(data, offset)
-                offset += r
-                instructions.append(Instruction(op=op, arg1=resolve_var(arg_id - 1) if arg_id > 0 else None))
-
-            elif op in (Opcode.NEG, Opcode.NOT):
-                res_id, r = LEB128.decode_unsigned(data, offset)
-                offset += r
-                a1_id, r2 = LEB128.decode_unsigned(data, offset)
-                offset += r2
-                instructions.append(Instruction(op=op, result=resolve_var(res_id), arg1=resolve_var(a1_id)))
-
-            elif op == Opcode.NOP:
-                instructions.append(Instruction(op=op))
-
-            else:
-                # Binary arithmetic/relational
-                res_id, r = LEB128.decode_unsigned(data, offset)
-                offset += r
-                a1_id, r2 = LEB128.decode_unsigned(data, offset)
-                offset += r2
-                a2_id, r3 = LEB128.decode_unsigned(data, offset)
-                offset += r3
-                instructions.append(Instruction(
-                    op=op,
-                    result=resolve_var(res_id),
-                    arg1=resolve_var(a1_id),
-                    arg2=resolve_var(a2_id)
-                ))
-
-        return instructions, constant_pool
+    @classmethod
+    def decode_cfg(cls, data: bytes) -> 'ControlFlowGraph':
+        """Decode a package straight into an executable control-flow graph."""
+        from core.cfg import ControlFlowGraph
+        blocks, _ = cls.decode_blocks(data)
+        return ControlFlowGraph.from_blocks(blocks)
 
 
 class IRCompressionPipeline:
@@ -512,7 +582,8 @@ class IRCompressionPipeline:
     def run(raw_instructions: List[Instruction],
             optimized_instructions: List[Instruction],
             symbol_table: SymbolTable,
-            constant_pool: ConstantPool) -> dict:
+            constant_pool: ConstantPool,
+            cfg: Optional[Any] = None) -> dict:
 
         # 1. Raw Text IR representation
         raw_text = "\n".join(str(i) for i in raw_instructions)
@@ -524,7 +595,7 @@ class IRCompressionPipeline:
 
         # 3. Binary Bytecode Serialization
         emitter = BytecodeEmitter(symbol_table, constant_pool)
-        bytecode = emitter.serialize_program(optimized_instructions)
+        bytecode = emitter.serialize_program(optimized_instructions, cfg=cfg)
         bytecode_bytes = len(bytecode)
 
         # 4. Huffman Entropy Compression on Bytecode

@@ -76,3 +76,62 @@ def test_temporaries_do_not_overwrite_user_variables_named_like_temps():
     user_defs = {"t1", "a"}
     temps = {i.result for i in raw if i.result and i.result not in user_defs}
     assert temps and all(t.startswith("_t") for t in temps)
+
+
+# ------------------------------------------------------- Comments 2 and 8
+
+import glob
+
+from core.ir import Instruction, canonical_form
+from core.binary_compression import BytecodeEmitter, BytecodeDecoder
+
+BENCHMARKS = sorted(glob.glob("benchmarks/*.lang") + glob.glob("benchmarks/*.c"))
+
+
+def _block_order(cfg):
+    return [b.id for b in sorted(cfg.blocks.values(), key=lambda b: int(b.id[2:]))]
+
+
+@pytest.mark.parametrize("path", BENCHMARKS)
+def test_clir_is_self_describing(path):
+    """Decoding with no side tables at all (no name maps, no literal table)
+    must give back the optimized program up to a consistent renaming."""
+    _, _, opt_cfg, opt, _ = _compile(open(path, encoding="utf-8").read())
+    package = bytes(BytecodeEmitter().serialize_program(opt, cfg=opt_cfg))
+    blocks, _ = BytecodeDecoder.decode_blocks(package)
+    decoded = [i for _, instrs in blocks for i in instrs]
+    assert canonical_form(decoded, [b for b, _ in blocks]) == \
+        canonical_form(opt, _block_order(opt_cfg))
+
+
+def test_literal_operands_are_stored_in_the_package():
+    """Literal operands inside instructions (not only LOAD_CONST) round-trip."""
+    instrs = [
+        Instruction(op=Opcode.ADD, arg1="x", arg2="5", result="y"),
+        Instruction(op=Opcode.LT, arg1="-3", arg2="y", result="c"),
+        Instruction(op=Opcode.ASSIGN, arg1="2.5", result="f"),
+        Instruction(op=Opcode.PRINT, arg1='"done"'),
+        Instruction(op=Opcode.PRINT, arg1="true"),
+        Instruction(op=Opcode.RETURN, arg1="0"),
+    ]
+    package = bytes(BytecodeEmitter().serialize_program(instrs))
+    decoded, pool = BytecodeDecoder.decode_program(package)
+    assert [str(i) for i in decoded] == [
+        "v0 = v1 + 5", "v2 = -3 < v0", "v3 = 2.5", 'print "done"', "print true", "return 0"]
+    assert [e.value for e in pool.entries] == [5, -3, 2.5, "done", True, 0]
+
+
+@pytest.mark.parametrize("path", BENCHMARKS)
+def test_constant_pool_holds_only_referenced_literals(path):
+    _, _, opt_cfg, opt, _ = _compile(open(path, encoding="utf-8").read())
+    emitter = BytecodeEmitter()
+    emitter.serialize_program(opt, cfg=opt_cfg)
+    used = set()
+    for i in opt:
+        operands = list(i.phi_args.values()) + [i.arg1, i.arg2]
+        used |= {str(o) for o in operands
+                 if o is not None and BytecodeEmitter.classify_operand(o)
+                 and i.op not in (Opcode.LABEL, Opcode.JUMP)}
+    pooled = {(e.const_type, e.value) for e in emitter.pool.entries}
+    assert len(emitter.pool.entries) == len(used)
+    assert len(pooled) == len(emitter.pool.entries)

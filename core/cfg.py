@@ -173,6 +173,52 @@ class ControlFlowGraph:
 
         return cfg
 
+    @classmethod
+    def from_blocks(cls, blocks: List[Tuple[str, List[Instruction]]]) -> 'ControlFlowGraph':
+        """Rebuild a CFG from an ordered list of (block id, instructions), as
+        stored in a CLIR package. Edges follow the terminator of each block:
+        a jump goes to the block holding its label, a conditional jump also
+        falls through to the next block, a return ends the path, and any
+        other block falls through. Empty blocks fall through as well."""
+        cfg = cls()
+        if not blocks:
+            return cfg
+        order = [b_id for b_id, _ in blocks]
+        for b_id, instrs in blocks:
+            bb = BasicBlock(id=b_id, instructions=list(instrs))
+            cfg.blocks[b_id] = bb
+            for instr in instrs:
+                if instr.op == Opcode.LABEL:
+                    if bb.label is None:
+                        bb.label = str(instr.arg1)
+                    cfg.label_to_block[str(instr.arg1)] = b_id
+        cfg.entry_block_id = order[0]
+
+        def connect(src: str, dst: str, kind: str):
+            cfg.blocks[src].successors.add(dst)
+            cfg.blocks[dst].predecessors.add(src)
+            cfg.edge_types[(src, dst)] = kind
+
+        for idx, b_id in enumerate(order):
+            bb = cfg.blocks[b_id]
+            nxt = order[idx + 1] if idx + 1 < len(order) else None
+            last = bb.instructions[-1] if bb.instructions else None
+            if last is not None and last.op == Opcode.JUMP:
+                target = cfg.label_to_block.get(str(last.arg1))
+                if target is not None:
+                    connect(b_id, target, "jump")
+            elif last is not None and last.op in (Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE):
+                target = cfg.label_to_block.get(str(last.result))
+                if target is not None:
+                    connect(b_id, target, "branch_true" if last.op == Opcode.JUMP_IF_TRUE else "branch_false")
+                if nxt is not None:
+                    connect(b_id, nxt, "branch_false" if last.op == Opcode.JUMP_IF_TRUE else "branch_true")
+            elif last is not None and last.op == Opcode.RETURN:
+                pass
+            elif nxt is not None:
+                connect(b_id, nxt, "fallthrough")
+        return cfg
+
     def prune_unreachable_blocks(self) -> int:
         """
         CFG Compression: Removes blocks that cannot be reached from the entry block.

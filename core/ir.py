@@ -3,9 +3,28 @@ Three-Address Code (TAC) Intermediate Representation (IR) definitions.
 Supports Quadruples (Op, Arg1, Arg2, Result), Labels, Jumps, and SSA Phi nodes.
 """
 
+import re
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any, Union, Tuple
+
+_INT_LITERAL = re.compile(r"-?[0-9]+")
+_FLOAT_LITERAL = re.compile(r"-?([0-9]+\.[0-9]*|\.[0-9]+|[0-9]+)([eE][-+]?[0-9]+)?")
+
+
+def literal_type(operand: Any) -> Optional[str]:
+    """Return 'int', 'float', 'bool' or 'string' if the operand text is a
+    literal, or None if it names a variable."""
+    s = str(operand)
+    if s in ("true", "false"):
+        return "bool"
+    if len(s) >= 2 and s.startswith('"') and s.endswith('"'):
+        return "string"
+    if _INT_LITERAL.fullmatch(s):
+        return "int"
+    if _FLOAT_LITERAL.fullmatch(s):
+        return "float"
+    return None
 
 
 class Opcode(Enum):
@@ -140,3 +159,43 @@ class Instruction:
         if self.op in (Opcode.LABEL, Opcode.JUMP, Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE, Opcode.RETURN, Opcode.PRINT, Opcode.NOP):
             return None
         return self.result
+
+
+def canonical_form(instructions: List[Instruction],
+                   block_order: Optional[List[str]] = None) -> List[Tuple]:
+    """Rewrite an instruction list with variables, labels and phi predecessor
+    blocks renamed v0, v1, ... / L0, ... / B0, ... in order of first
+    appearance, keeping literals. Blocks are numbered in `block_order` when
+    it is given. Two lists are equal up to a consistent renaming exactly
+    when their canonical forms are equal."""
+    names: Dict[str, Dict[str, str]] = {"v": {}, "L": {}, "B": {}}
+    for block in block_order or []:
+        names["B"].setdefault(str(block), f"B{len(names['B'])}")
+
+    def rename(space: str, name: Any) -> Optional[str]:
+        if name is None:
+            return None
+        table = names[space]
+        key = str(name)
+        if key not in table:
+            table[key] = f"{space}{len(table)}"
+        return table[key]
+
+    def value(operand: Any) -> Optional[str]:
+        if operand is None:
+            return None
+        return str(operand) if literal_type(operand) else rename("v", operand)
+
+    out: List[Tuple] = []
+    for instr in instructions:
+        if instr.op in (Opcode.LABEL, Opcode.JUMP):
+            out.append((instr.op, rename("L", instr.arg1)))
+        elif instr.op in (Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE):
+            out.append((instr.op, value(instr.arg1), rename("L", instr.result)))
+        elif instr.op == Opcode.PHI:
+            res = rename("v", instr.result)
+            args = tuple(sorted((rename("B", p), value(v)) for p, v in instr.phi_args.items()))
+            out.append((instr.op, res, args))
+        else:
+            out.append((instr.op, rename("v", instr.result), value(instr.arg1), value(instr.arg2)))
+    return out

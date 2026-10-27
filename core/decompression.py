@@ -87,12 +87,14 @@ class DecompressionEngine:
         # -------------------------------------------------------------
         id_to_var = emitter.id_to_var if emitter else None
         id_to_label = emitter.id_to_label if emitter else None
+        id_to_block = getattr(emitter, "id_to_block", None) if emitter else None
 
         t0 = time.perf_counter()
         reconstructed_instrs, restored_cp = BytecodeDecoder.decode_program(
             decompressed_bc,
             id_to_var=id_to_var,
-            id_to_label=id_to_label
+            id_to_label=id_to_label,
+            id_to_block=id_to_block,
         )
         bytecode_dec_time_us = (time.perf_counter() - t0) * 1e6
 
@@ -171,14 +173,16 @@ class DecompressionEngine:
             orig_str = str(orig_instr) if orig_instr else "(missing)"
             dec_str = str(dec_instr) if dec_instr else "(missing)"
 
-            # Strict semantic equality check
+            # Strict semantic equality check (operands, literals and phi
+            # arguments with their predecessor blocks)
             is_match = False
             if orig_instr is not None and dec_instr is not None:
                 is_match = (
                     orig_instr.op == dec_instr.op and
                     str(orig_instr.result) == str(dec_instr.result) and
                     str(orig_instr.arg1) == str(dec_instr.arg1) and
-                    str(orig_instr.arg2) == str(dec_instr.arg2)
+                    str(orig_instr.arg2) == str(dec_instr.arg2) and
+                    (orig_instr.phi_args or {}) == (dec_instr.phi_args or {})
                 )
 
             if is_match:

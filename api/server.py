@@ -140,7 +140,8 @@ def compile_code(req: CompileRequest):
             raw_instructions=initial_raw_instructions,
             optimized_instructions=opt_instructions,
             symbol_table=symbol_table,
-            constant_pool=constant_pool
+            constant_pool=constant_pool,
+            cfg=optimized_cfg,
         )
 
         # 10. Advanced Architecture: Front-Coding, RPO Fallthrough, SSA Backward Deltas, Columnar SoA
@@ -156,7 +157,7 @@ def compile_code(req: CompileRequest):
         # 11. Multi-Algorithm Mainstream Compression Comparison Benchmark
         from core.compression_benchmarks import CompressionBenchmarkSuite
         emitter = BytecodeEmitter(symbol_table, constant_pool)
-        bytecode_bytes = bytes(emitter.serialize_program(opt_instructions))
+        bytecode_bytes = bytes(emitter.serialize_program(opt_instructions, cfg=optimized_cfg))
         raw_text_bytes = len("\n".join(str(i) for i in initial_raw_instructions).encode('utf-8'))
         compression_comparison = CompressionBenchmarkSuite.run_benchmark(
             target_payload=bytecode_bytes,
@@ -249,7 +250,7 @@ def export_compressed_binary(req: CompileRequest):
         opt_instructions = opt_cfg.linearize()
 
         emitter = BytecodeEmitter(ir_gen.symbol_table, ir_gen.constant_pool)
-        bytecode = emitter.serialize_program(opt_instructions)
+        bytecode = emitter.serialize_program(opt_instructions, cfg=opt_cfg)
         huffman_compressed = HuffmanCompressor.compress(bytes(bytecode))
 
         return Response(
