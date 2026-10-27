@@ -68,7 +68,182 @@ class HuffmanNode:
 
 
 class HuffmanCompressor:
-    """Canonical Huffman entropy compressor for binary bytecode packages."""
+    """Canonical Huffman entropy compressor for binary bytecode packages.
+
+    Only the code length of each byte value is stored; the decoder rebuilds
+    the canonical code from the lengths (codes of equal length are
+    consecutive integers, assigned in symbol order). Stream layout::
+
+        LEB128(n)    number of input bytes (0 means empty input)
+        mode byte    layout of the code-length table:
+          0 sparse   (k - 1) byte, the k symbols ascending, k 4-bit lengths
+          1 bitmap   32-byte presence bitmap, k 4-bit lengths
+          2 dense    256 4-bit lengths (0 = symbol absent)
+        payload      the codes, most significant bit first, zero-padded
+
+    The smallest of the three tables is written. Code lengths are limited to
+    MAX_CODE_LENGTH so that each fits in four bits.
+    """
+
+    MAX_CODE_LENGTH = 15
+
+    @classmethod
+    def code_lengths(cls, data: bytes) -> Dict[int, int]:
+        """Huffman code length of every byte value occurring in data, limited
+        to MAX_CODE_LENGTH by halving the frequencies until the tree fits."""
+        freqs = Counter(data)
+        if len(freqs) == 1:
+            return {next(iter(freqs)): 1}
+        weights = dict(freqs)
+        while True:
+            # Heap entries: (weight, tie-breaker, symbols in this subtree)
+            heap = [(w, s, [s]) for s, w in weights.items()]
+            heapq.heapify(heap)
+            depth = {s: 0 for s in weights}
+            tie = 256
+            while len(heap) > 1:
+                w1, _, s1 = heapq.heappop(heap)
+                w2, _, s2 = heapq.heappop(heap)
+                for s in s1 + s2:
+                    depth[s] += 1
+                heapq.heappush(heap, (w1 + w2, tie, s1 + s2))
+                tie += 1
+            if max(depth.values()) <= cls.MAX_CODE_LENGTH:
+                return depth
+            weights = {s: (w + 1) // 2 for s, w in weights.items()}
+
+    @staticmethod
+    def canonical_codes(lengths: Dict[int, int]) -> Dict[int, Tuple[int, int]]:
+        """Map symbol -> (code, length) for the canonical code of lengths."""
+        codes: Dict[int, Tuple[int, int]] = {}
+        code = 0
+        prev_len = 0
+        for sym, ln in sorted(lengths.items(), key=lambda kv: (kv[1], kv[0])):
+            code <<= (ln - prev_len)
+            codes[sym] = (code, ln)
+            code += 1
+            prev_len = ln
+        return codes
+
+    @staticmethod
+    def _pack_nibbles(values: List[int]) -> bytes:
+        out = bytearray()
+        for i in range(0, len(values), 2):
+            hi = values[i]
+            lo = values[i + 1] if i + 1 < len(values) else 0
+            out.append((hi << 4) | lo)
+        return bytes(out)
+
+    @staticmethod
+    def _unpack_nibbles(data: bytes, offset: int, count: int) -> List[int]:
+        vals = []
+        for i in range(count):
+            byte = data[offset + i // 2]
+            vals.append(byte >> 4 if i % 2 == 0 else byte & 0x0F)
+        return vals
+
+    @classmethod
+    def encode_table(cls, lengths: Dict[int, int]) -> bytes:
+        """Smallest serialization of a code-length table (mode byte included)."""
+        symbols = sorted(lengths)
+        nibbles = cls._pack_nibbles([lengths[s] for s in symbols])
+        sparse = bytes([0, len(symbols) - 1]) + bytes(symbols) + nibbles
+        bitmap = bytearray(32)
+        for s in symbols:
+            bitmap[s >> 3] |= 0x80 >> (s & 7)
+        bitmapped = bytes([1]) + bytes(bitmap) + nibbles
+        dense = bytes([2]) + cls._pack_nibbles([lengths.get(s, 0) for s in range(256)])
+        return min((sparse, bitmapped, dense), key=len)
+
+    @classmethod
+    def decode_table(cls, data: bytes, offset: int) -> Tuple[Dict[int, int], int]:
+        mode = data[offset]
+        offset += 1
+        if mode == 0:
+            k = data[offset] + 1
+            offset += 1
+            symbols = list(data[offset:offset + k])
+            offset += k
+        elif mode == 1:
+            bitmap = data[offset:offset + 32]
+            offset += 32
+            symbols = [s for s in range(256) if bitmap[s >> 3] & (0x80 >> (s & 7))]
+        elif mode == 2:
+            lens = cls._unpack_nibbles(data, offset, 256)
+            return {s: ln for s, ln in enumerate(lens) if ln}, offset + 128
+        else:
+            raise ValueError(f"Unknown Huffman table mode {mode}")
+        lens = cls._unpack_nibbles(data, offset, len(symbols))
+        return dict(zip(symbols, lens)), offset + (len(symbols) + 1) // 2
+
+    @classmethod
+    def compress(cls, data: bytes) -> bytes:
+        if not data:
+            return b""
+        lengths = cls.code_lengths(data)
+        codes = cls.canonical_codes(lengths)
+
+        out = bytearray(LEB128.encode_unsigned(len(data)))
+        out.extend(cls.encode_table(lengths))
+
+        acc = 0
+        nbits = 0
+        for b in data:
+            code, ln = codes[b]
+            acc = (acc << ln) | code
+            nbits += ln
+            while nbits >= 8:
+                nbits -= 8
+                out.append((acc >> nbits) & 0xFF)
+            acc &= (1 << nbits) - 1
+        if nbits:
+            out.append((acc << (8 - nbits)) & 0xFF)
+        return bytes(out)
+
+    @classmethod
+    def decompress(cls, data: bytes) -> bytes:
+        if not data:
+            return b""
+        n, offset = LEB128.decode_unsigned(data, 0)
+        lengths, offset = cls.decode_table(data, offset)
+        lookup = {(ln, code): sym for sym, (code, ln) in cls.canonical_codes(lengths).items()}
+
+        decoded = bytearray()
+        code = 0
+        ln = 0
+        for byte in data[offset:]:
+            for shift in range(7, -1, -1):
+                code = (code << 1) | ((byte >> shift) & 1)
+                ln += 1
+                sym = lookup.get((ln, code))
+                if sym is not None:
+                    decoded.append(sym)
+                    if len(decoded) == n:
+                        return bytes(decoded)
+                    code = 0
+                    ln = 0
+        return bytes(decoded)
+
+    @classmethod
+    def analyze(cls, data: bytes) -> Dict[str, int]:
+        """Sizes of the parts of the compressed stream for data."""
+        if not data:
+            return {"distinct_symbols": 0, "header_bytes": 0, "payload_bytes": 0,
+                    "payload_bits": 0, "total_bytes": 0}
+        lengths = cls.code_lengths(data)
+        freqs = Counter(data)
+        bits = sum(freqs[s] * lengths[s] for s in freqs)
+        header = len(LEB128.encode_unsigned(len(data))) + len(cls.encode_table(lengths))
+        payload = (bits + 7) // 8
+        return {"distinct_symbols": len(lengths), "header_bytes": header,
+                "payload_bytes": payload, "payload_bits": bits, "total_bytes": header + payload}
+
+
+class FrequencyTableHuffman:
+    """Static Huffman coder with a frequency-table header (the format used
+    before canonical coding): 16-bit symbol count, each symbol with a 32-bit
+    frequency, the 32-bit input length and a padding byte, i.e. 7 + 5k
+    header bytes for k distinct byte values. Kept for comparison."""
 
     @staticmethod
     def build_codes(root: Optional[HuffmanNode], current_code: str, codes: Dict[int, str]):
@@ -77,8 +252,8 @@ class HuffmanCompressor:
         if root.byte_val is not None:
             codes[root.byte_val] = current_code if current_code else "0"
             return
-        HuffmanCompressor.build_codes(root.left, current_code + "0", codes)
-        HuffmanCompressor.build_codes(root.right, current_code + "1", codes)
+        FrequencyTableHuffman.build_codes(root.left, current_code + "0", codes)
+        FrequencyTableHuffman.build_codes(root.right, current_code + "1", codes)
 
     @classmethod
     def compress(cls, data: bytes) -> bytes:

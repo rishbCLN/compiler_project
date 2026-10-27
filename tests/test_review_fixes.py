@@ -175,3 +175,55 @@ def test_columnar_keeps_forward_phi_references():
 def test_columnar_container_is_lossless_on_benchmarks(path):
     _, _, _, opt, _ = _compile(open(path, encoding="utf-8").read())
     assert canonical_form(_columnar_roundtrip(opt)) == canonical_form(opt)
+
+
+# ------------------------------------------------------------- Comment 7
+
+import random
+
+from core.binary_compression import HuffmanCompressor, FrequencyTableHuffman
+
+
+def _random_bytes(seed, n, alphabet=range(256)):
+    rng = random.Random(seed)
+    alphabet = list(alphabet)
+    return bytes(rng.choice(alphabet) for _ in range(n))
+
+
+def _fibonacci_skewed(n_symbols=22):
+    """Frequencies 1, 1, 2, 3, 5, ... force an unbounded Huffman tree deeper
+    than 15 levels, which exercises length limiting."""
+    a, b = 1, 1
+    out = bytearray()
+    for s in range(n_symbols):
+        out.extend(bytes([s]) * a)
+        a, b = b, a + b
+    return bytes(out)
+
+
+@pytest.mark.parametrize("data", [
+    b"a",
+    b"aaaaaaa",
+    b"ab",
+    bytes(range(256)),
+    _random_bytes(1, 5000),
+    _random_bytes(2, 3000, b"\x00\x01\x02\x11\x12\x80"),
+    _fibonacci_skewed(),
+])
+def test_canonical_huffman_round_trip(data):
+    packed = HuffmanCompressor.compress(data)
+    assert HuffmanCompressor.decompress(packed) == data
+    assert HuffmanCompressor.analyze(data)["total_bytes"] == len(packed)
+    assert max(HuffmanCompressor.code_lengths(data).values()) <= 15
+
+
+def test_canonical_header_is_small():
+    """The frequency-table header costs 7 + 5k bytes (1,287 for k = 256);
+    canonical coding stores only 4-bit code lengths."""
+    data = _random_bytes(3, 4000)
+    info = HuffmanCompressor.analyze(data)
+    assert info["distinct_symbols"] == 256
+    assert info["header_bytes"] <= 2 + 1 + 128
+    old = FrequencyTableHuffman.compress(data)
+    assert len(old) - info["payload_bytes"] >= 1287 - 1
+    assert FrequencyTableHuffman.decompress(old) == data
