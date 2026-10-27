@@ -168,14 +168,19 @@ numbering in order of first citation. DOIs were checked against Crossref.
 
 ### 14. (Major) Individual contribution statements
 
-Section III-D and the Author Contributions section now attribute each part of the work to named authors (front end;
-CFG, dominance and SSA; optimizer; encoders; server and web front end; tests, kernels and evaluation; writing).
+Section III-D and the Author Contributions section now state what each author did:
+
+* **Rishabh Kumar** implemented the first version of the compiler core, the HTTP server and the web front end with
+  its user-interface tests.
+* **Hrituraj Deb** led the revision (corrected folder, SCCP and copy propagation, self-describing bytecode, canonical
+  Huffman coding, functions and input, kernels, evaluation) and the manuscript.
+* **Gautham G** and **Aarnav Bhasin** wrote and ran test programs, checked the benchmark outputs, and prepared the
+  diagrams and the screenshot.
 
 The Acknowledgements disclose the use of the AI assistant Claude (Anthropic). It was used to draft the manuscript, to
 write the evaluation scripts and figures, and, in the revision, to implement the requested changes under the authors'
 direction. We have confirmed that this use is permitted under the course and institutional policy.
-**[Authors: fill in the names in Section III-D and Author Contributions, and confirm the policy check before sending
-this letter.]**
+**[Authors: confirm the policy check before sending this letter.]**
 
 ### 15. (Minor) IEEE Access front matter
 

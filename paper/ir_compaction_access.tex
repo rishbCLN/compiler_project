@@ -544,7 +544,7 @@ Fig.~\ref{fig:modules} lists the modules of the implementation and their main fu
 \end{figure*}
 
 %% Team contribution, as required by the course content template.
-The work on these modules was divided as follows. The front end (lexer, parser, TAC generator, symbol table and constant pool) was designed and implemented by \todo{name(s)}. The control-flow graph, the dominance analysis and the SSA construction were designed and implemented by \todo{name(s)}. The optimizer, including SCCP and copy propagation, was designed and implemented by \todo{name(s)}. The \clir{} bytecode, the Huffman coders and the columnar container were designed and implemented by \todo{name(s)}. The HTTP server and the web front end were built by \todo{name(s)}. The tests, the kernels, the evaluation and the figures were prepared by \todo{name(s)}. Every module was reviewed by at least one other team member.
+The work on these modules was divided as follows. Rishabh Kumar implemented the first version of the compiler core (front end, control-flow graph, dominance analysis, SSA construction, optimizer and encoders), the HTTP server and the web front end with its user-interface tests. Hrituraj Deb led the revision: the corrected constant folder, SCCP and copy propagation, the self-describing bytecode, canonical Huffman coding, function and input support, the kernels, the evaluation and the manuscript. Gautham G and Aarnav Bhasin wrote and ran test programs, checked the benchmark outputs, and prepared the diagrams and the screenshot. Every module was reviewed by at least one other team member.
 
 \subsection{Flow Diagram}
 Fig.~\ref{fig:flow} shows the processing flow for one program. A syntax error stops processing with the line and column of the offending token. Otherwise the program passes through TAC generation, CFG construction, dominance analysis and SSA construction. The optimizer then repeats its seven passes while the program keeps changing, for at most ten rounds. Every function of the program passes through these stages on its own. Finally, the encoder writes the \clir{} package and its Huffman-coded form, builds the columnar container, decides with one comparison whether that container is stored coded or raw, and verifies every round trip before reporting sizes.
@@ -990,7 +990,7 @@ Tukaani Project, ``XZ Utils,'' 2024. [Online]. Available: \url{https://github.co
 %% End sections required by the course content template
 %% ---------------------------------------------------------------------------
 \section*{Author Contributions}
-\textbf{Hrituraj Deb:} \todo{design, implementation and evaluation work, and writing}. \textbf{Gautham G:} \todo{contribution}. \textbf{Rishabh Kumar:} \todo{contribution}. \textbf{Aarnav Bhasin:} \todo{contribution}. All authors read and approved the final manuscript.
+\textbf{Hrituraj Deb:} methodology, software (revision), validation, formal analysis, writing (original draft, review and editing). \textbf{Rishabh Kumar:} software (compiler core, server and web front end), visualization, writing (first draft). \textbf{Gautham G:} validation (test programs, benchmark checks), visualization (diagrams, screenshot). \textbf{Aarnav Bhasin:} validation (test programs, benchmark checks), visualization (diagrams, screenshot). All authors read and approved the final manuscript.
 
 \section*{Acknowledgements}
 %% IEEE Access requires AI-assisted work to be disclosed here, naming the AI
