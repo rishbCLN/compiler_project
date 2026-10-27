@@ -7,6 +7,7 @@ Performs:
 4. Control Flow Graph Block Merging and Jump Threading
 """
 
+import math
 from typing import Dict, Set, List, Optional, Any, Tuple
 from core.ir import Instruction, Opcode
 from core.cfg import ControlFlowGraph, BasicBlock
@@ -82,6 +83,17 @@ class IROptimizer:
         except ValueError:
             return None
 
+    @staticmethod
+    def _c_int_div(a: int, b: int) -> int:
+        """Integer division with C semantics (truncation toward zero).
+        Python's // floors, which differs for operands of opposite sign:
+        -7 // 2 == -4 in Python but -7 / 2 == -3 in C. The C remainder
+        a % b is then a - b * (a / b), so it takes the sign of the dividend."""
+        if b == 0:
+            raise ZeroDivisionError
+        q = abs(a) // abs(b)
+        return q if (a >= 0) == (b >= 0) else -q
+
     def _eval_binary(self, op: Opcode, v1: Any, v2: Any) -> Optional[Any]:
         try:
             if op == Opcode.ADD:
@@ -91,9 +103,13 @@ class IROptimizer:
             elif op == Opcode.MUL:
                 return v1 * v2
             elif op == Opcode.DIV:
-                return v1 // v2 if isinstance(v1, int) and isinstance(v2, int) else v1 / v2
+                if isinstance(v1, int) and isinstance(v2, int):
+                    return self._c_int_div(v1, v2)
+                return v1 / v2
             elif op == Opcode.MOD:
-                return v1 % v2
+                if isinstance(v1, int) and isinstance(v2, int):
+                    return v1 - v2 * self._c_int_div(v1, v2)
+                return math.fmod(v1, v2)
             elif op == Opcode.EQ:
                 return v1 == v2
             elif op == Opcode.NE:
