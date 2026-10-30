@@ -1,0 +1,205 @@
+Sample output for K10: k10_iir_filter.c (Low-pass filter)
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// K10: fixed-point first-order low-pass filter over sensor samples, with
+// clamping and a running minimum and maximum, as in embedded firmware.
+// input: 10 100 120 80 0 -50 300 310 290 1000 -1000
+#include <stdio.h>
+
+int clamp(int v, int lo, int hi) {
+    if (v < lo) {
+        return lo;
+    }
+    if (v > hi) {
+        return hi;
+    }
+    return v;
+}
+
+int filter_step(int state, int sample) {
+    return (3 * state + clamp(sample, -500, 500)) / 4;
+}
+
+int main() {
+    int n;
+    int x;
+    int state = 0;
+    int lo = 1000000;
+    int hi = -1000000;
+    scanf("%d", &n);
+    for (int i = 0; i < n; i = i + 1) {
+        scanf("%d", &x);
+        state = filter_step(state, x);
+        if (state < lo) {
+            lo = state;
+        }
+        if (state > hi) {
+            hi = state;
+        }
+        printf("%d\n", state);
+    }
+    printf("%d\n", lo);
+    printf("%d\n", hi);
+    return 0;
+}
+
+PROGRAM INPUT: 10 100 120 80 0 -50 300 310 290 1000 -1000
+
+RAW THREE-ADDRESS CODE (64 instructions)
+------------------------------------------------------------------------
+t11 = 0
+state = t11
+t12 = 1000000
+lo = t12
+t13 = 1000000
+t14 = -t13
+hi = t14
+n = read
+t15 = 0
+i = t15
+L_for_start_4:
+t16 = i < n
+if_false t16 goto L_for_end_5
+x = read
+t17 = call filter_step(state, x)
+state = t17
+t18 = state < lo
+if_false t18 goto L_endif_7
+lo = state
+L_endif_7:
+t19 = state > hi
+if_false t19 goto L_endif_9
+hi = state
+L_endif_9:
+t20 = "%d
+"
+print t20
+print state
+t21 = 1
+t22 = i + t21
+i = t22
+goto L_for_start_4
+L_for_end_5:
+t23 = "%d
+"
+print t23
+print lo
+t24 = "%d
+"
+print t24
+print hi
+t25 = 0
+return t25
+func clamp(v, lo, hi):
+v = param 0
+lo = param 1
+hi = param 2
+t0 = v < lo
+if_false t0 goto L_endif_1
+return lo
+L_endif_1:
+t1 = v > hi
+if_false t1 goto L_endif_3
+return hi
+L_endif_3:
+return v
+func filter_step(state, sample):
+state = param 0
+sample = param 1
+t2 = 3
+t3 = t2 * state
+t4 = 500
+t5 = -t4
+t6 = 500
+t7 = call clamp(sample, t5, t6)
+t8 = t3 + t7
+t9 = 4
+t10 = t8 / t9
+return t10
+
+OPTIMIZED SSA CODE (47 instructions)
+------------------------------------------------------------------------
+n_0 = read
+L_for_start_4:
+i_1 = phi(BB0: 0, BB6: t22_0)
+hi_1 = phi(BB0: -1000000, BB6: hi_3)
+lo_1 = phi(BB0: 1000000, BB6: lo_3)
+state_1 = phi(BB0: 0, BB6: t17_0)
+t16_0 = i_1 < n_0
+if_false t16_0 goto L_for_end_5
+x_0 = read
+t17_0 = call filter_step(state_1, x_0)
+t18_0 = t17_0 < lo_1
+if_false t18_0 goto L_endif_7
+L_endif_7:
+lo_3 = phi(BB2: lo_1, BB3: t17_0)
+t19_0 = t17_0 > hi_1
+if_false t19_0 goto L_endif_9
+L_endif_9:
+hi_3 = phi(BB4: hi_1, BB5: t17_0)
+print "%d
+"
+print t17_0
+t22_0 = i_1 + 1
+goto L_for_start_4
+L_for_end_5:
+print "%d
+"
+print lo_1
+print "%d
+"
+print hi_1
+return 0
+func clamp(v, lo, hi):
+v_0 = param 0
+lo_0 = param 1
+hi_0 = param 2
+t0_0 = v_0 < lo_0
+if_false t0_0 goto L_endif_1
+return lo_0
+L_endif_1:
+t1_0 = v_0 > hi_0
+if_false t1_0 goto L_endif_3
+return hi_0
+L_endif_3:
+return v_0
+func filter_step(state, sample):
+state_0 = param 0
+sample_0 = param 1
+t3_0 = 3 * state_0
+t7_0 = call clamp(sample_0, -500, 500)
+t8_0 = t3_0 + t7_0
+t10_0 = t8_0 / 4
+return t10_0
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   0
+  constant_propagations            13
+  sccp_constants                   11
+  sccp_branches_resolved           0
+  copies_propagated                9
+  gvn_eliminations                 0
+  dead_instructions_removed        23
+  dead_blocks_removed              0
+  initial_instructions             70
+  final_instructions               47
+  rounds                           5
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    64 -> 47  (reduction 26.6%)
+  raw TAC text:        906 bytes
+  optimized text:      976 bytes
+  CLIR bytecode:       212 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          ['%d\n', 25, '%d\n', 48, '%d\n', 56, '%d\n', 42, '%d\n', 19, '%d\n', 89, '%d\n', 144, '%d\n', 180, '%d\n', 260, '%d\n', 70, '%d\n', 19, '%d\n', 260]   (return value 0)
+  optimized SSA:    ['%d\n', 25, '%d\n', 48, '%d\n', 56, '%d\n', 42, '%d\n', 19, '%d\n', 89, '%d\n', 144, '%d\n', 180, '%d\n', 260, '%d\n', 70, '%d\n', 19, '%d\n', 260]   (return value 0)
+  decoded CLIR:     ['%d\n', 25, '%d\n', 48, '%d\n', 56, '%d\n', 42, '%d\n', 19, '%d\n', 89, '%d\n', 144, '%d\n', 180, '%d\n', 260, '%d\n', 70, '%d\n', 19, '%d\n', 260]   (return value 0)
+  all identical:    True

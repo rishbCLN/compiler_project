@@ -1,0 +1,98 @@
+Sample output for S6: sample6_standard_cfg_demo.lang (Diamond + loop (CFG demo))
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// Standard CFG Showcase: Diamond Branch + While Loop + SSA Phi Nodes
+// Designed for live presentation: produces a balanced 7-block Control Flow Graph.
+
+int count = 0;
+int max = 10;
+int step = 1;
+
+// 1. Conditional Branch (Generates Diamond CFG: Split -> Then / Else -> Merge)
+if (count < max) {
+    step = 2;
+} else {
+    step = 1;
+}
+
+// 2. While Loop (Generates Header -> Body -> Back-edge -> Exit)
+while (count < max) {
+    count = count + step;
+}
+
+print(count, step);
+
+PROGRAM INPUT: (none)
+
+RAW THREE-ADDRESS CODE (24 instructions)
+------------------------------------------------------------------------
+t0 = 0
+count = t0
+t1 = 10
+max = t1
+t2 = 1
+step = t2
+t3 = count < max
+if_false t3 goto L_else_0
+t4 = 2
+step = t4
+goto L_endif_1
+L_else_0:
+t5 = 1
+step = t5
+L_endif_1:
+L_while_start_2:
+t6 = count < max
+if_false t6 goto L_while_end_3
+t7 = count + step
+count = t7
+goto L_while_start_2
+L_while_end_3:
+print count
+print step
+
+OPTIMIZED SSA CODE (11 instructions)
+------------------------------------------------------------------------
+goto L_endif_1
+L_endif_1:
+L_while_start_2:
+count_1 = phi(BB3: 0, BB5: t7_0)
+t6_0 = count_1 < 10
+if_false t6_0 goto L_while_end_3
+t7_0 = count_1 + 2
+goto L_while_start_2
+L_while_end_3:
+print count_1
+print 2
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   2
+  constant_propagations            9
+  sccp_constants                   8
+  sccp_branches_resolved           0
+  copies_propagated                1
+  gvn_eliminations                 0
+  dead_instructions_removed        13
+  dead_blocks_removed              1
+  initial_instructions             26
+  final_instructions               11
+  rounds                           2
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    24 -> 11  (reduction 54.2%)
+  raw TAC text:        317 bytes
+  optimized text:      205 bytes
+  CLIR bytecode:        52 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          [10, 2]
+  optimized SSA:    [10, 2]
+  decoded CLIR:     [10, 2]
+  all identical:    True

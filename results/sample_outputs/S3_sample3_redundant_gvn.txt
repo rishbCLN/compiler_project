@@ -1,0 +1,101 @@
+Sample output for S3: sample3_redundant_gvn.lang (Redundant subexpressions)
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// Sample 3: Global Value Numbering (GVN) & Common Subexpression Elimination
+// Replaces repeated subexpressions (a + b) with single evaluation across basic blocks.
+
+int a = 4;
+int b = 7;
+int res1 = a + b;
+int res2 = b + a;
+int res3 = (a + b) * 2;
+int res4 = (b + a) * 2;
+
+if (res1 > 10) {
+    int check1 = a + b;
+    print(check1);
+} else {
+    int check2 = b + a;
+    print(check2);
+}
+
+print(res1, res2, res3, res4);
+
+PROGRAM INPUT: (none)
+
+RAW THREE-ADDRESS CODE (32 instructions)
+------------------------------------------------------------------------
+t0 = 4
+a = t0
+t1 = 7
+b = t1
+t2 = a + b
+res1 = t2
+t3 = b + a
+res2 = t3
+t4 = a + b
+t5 = 2
+t6 = t4 * t5
+res3 = t6
+t7 = b + a
+t8 = 2
+t9 = t7 * t8
+res4 = t9
+t10 = 10
+t11 = res1 > t10
+if_false t11 goto L_else_0
+t12 = a + b
+check1 = t12
+print check1
+goto L_endif_1
+L_else_0:
+t13 = b + a
+check2 = t13
+print check2
+L_endif_1:
+print res1
+print res2
+print res3
+print res4
+
+OPTIMIZED SSA CODE (7 instructions)
+------------------------------------------------------------------------
+print 11
+goto L_endif_1
+L_endif_1:
+print 11
+print 11
+print 22
+print 22
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   10
+  constant_propagations            33
+  sccp_constants                   7
+  sccp_branches_resolved           0
+  copies_propagated                0
+  gvn_eliminations                 0
+  dead_instructions_removed        22
+  dead_blocks_removed              1
+  initial_instructions             32
+  final_instructions               7
+  rounds                           2
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    32 -> 7  (reduction 78.1%)
+  raw TAC text:        360 bytes
+  optimized text:       70 bytes
+  CLIR bytecode:        29 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          [11, 11, 11, 22, 22]
+  optimized SSA:    [11, 11, 11, 22, 22]
+  decoded CLIR:     [11, 11, 11, 22, 22]
+  all identical:    True

@@ -1,0 +1,98 @@
+Sample output for S1: sample1_arithmetic_constants.lang (Constant folding, identities)
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// Sample 1: Arithmetic Optimization, Constant Folding & Literal Deduplication
+// Tests compile-time evaluation, algebraic identities, and constant pool interning.
+
+int a = 10 + 20 * 3;
+int b = a + 0;
+int c = b * 1;
+int d = c * 0;
+
+float pi = 3.14159;
+float radius = 5.0;
+float area = 3.14159 * radius * radius;
+
+string msg1 = "Optimization Active";
+string msg2 = "Optimization Active";
+
+print(a, b, c, d, area, msg1);
+
+PROGRAM INPUT: (none)
+
+RAW THREE-ADDRESS CODE (33 instructions)
+------------------------------------------------------------------------
+t0 = 10
+t1 = 20
+t2 = 3
+t3 = t1 * t2
+t4 = t0 + t3
+a = t4
+t5 = 0
+t6 = a + t5
+b = t6
+t7 = 1
+t8 = b * t7
+c = t8
+t9 = 0
+t10 = c * t9
+d = t10
+t11 = 3.14159
+pi = t11
+t12 = 5.0
+radius = t12
+t13 = 3.14159
+t14 = t13 * radius
+t15 = t14 * radius
+area = t15
+t16 = "Optimization Active"
+msg1 = t16
+t17 = "Optimization Active"
+msg2 = t17
+print a
+print b
+print c
+print d
+print area
+print msg1
+
+OPTIMIZED SSA CODE (6 instructions)
+------------------------------------------------------------------------
+print 70
+print 70
+print 70
+print 0
+print 78.53975
+print "Optimization Active"
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   7
+  constant_propagations            29
+  sccp_constants                   9
+  sccp_branches_resolved           0
+  copies_propagated                0
+  gvn_eliminations                 0
+  dead_instructions_removed        27
+  dead_blocks_removed              0
+  initial_instructions             33
+  final_instructions               6
+  rounds                           2
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    33 -> 6  (reduction 81.8%)
+  raw TAC text:        376 bytes
+  optimized text:       77 bytes
+  CLIR bytecode:        56 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          [70, 70, 70, 0, 78.53975, 'Optimization Active']
+  optimized SSA:    [70, 70, 70, 0, 78.53975, 'Optimization Active']
+  decoded CLIR:     [70, 70, 70, 0, 78.53975, 'Optimization Active']
+  all identical:    True

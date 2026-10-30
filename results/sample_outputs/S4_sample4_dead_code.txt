@@ -1,0 +1,92 @@
+Sample output for S4: sample4_dead_code.lang (Dead code, constant branch)
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// Sample 4: Dead Code Elimination (DCE) & Dead Block Removal
+// Identifies unused variables, unused expressions, and pruned conditional branches.
+
+int active = 100;
+int dead_var1 = 50 * 20;
+int dead_var2 = dead_var1 + 30;
+
+if (1 == 1) {
+    active = active + 10;
+} else {
+    // Completely unreachable branch
+    int ghost_var = 999;
+    print(ghost_var);
+}
+
+int unused_calc = active * 4 + 7;
+
+print(active);
+
+PROGRAM INPUT: (none)
+
+RAW THREE-ADDRESS CODE (28 instructions)
+------------------------------------------------------------------------
+t0 = 100
+active = t0
+t1 = 50
+t2 = 20
+t3 = t1 * t2
+dead_var1 = t3
+t4 = 30
+t5 = dead_var1 + t4
+dead_var2 = t5
+t6 = 1
+t7 = 1
+t8 = t6 == t7
+if_false t8 goto L_else_0
+t9 = 10
+t10 = active + t9
+active = t10
+goto L_endif_1
+L_else_0:
+t11 = 999
+ghost_var = t11
+print ghost_var
+L_endif_1:
+t12 = 4
+t13 = active * t12
+t14 = 7
+t15 = t13 + t14
+unused_calc = t15
+print active
+
+OPTIMIZED SSA CODE (3 instructions)
+------------------------------------------------------------------------
+goto L_endif_1
+L_endif_1:
+print 110
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   5
+  constant_propagations            17
+  sccp_constants                   9
+  sccp_branches_resolved           0
+  copies_propagated                0
+  gvn_eliminations                 0
+  dead_instructions_removed        23
+  dead_blocks_removed              1
+  initial_instructions             29
+  final_instructions               3
+  rounds                           2
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    28 -> 3  (reduction 89.3%)
+  raw TAC text:        360 bytes
+  optimized text:       35 bytes
+  CLIR bytecode:        20 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          [110]
+  optimized SSA:    [110]
+  decoded CLIR:     [110]
+  all identical:    True

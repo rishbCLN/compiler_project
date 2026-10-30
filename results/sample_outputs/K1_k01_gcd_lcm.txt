@@ -1,0 +1,156 @@
+Sample output for K1: k01_gcd_lcm.c (GCD and LCM (Euclid))
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// K1: greatest common divisor (Euclid) and least common multiple of input pairs.
+// input: 4 48 18 1071 462 270 192 17 5
+#include <stdio.h>
+
+int gcd(int a, int b) {
+    while (b != 0) {
+        int r = a % b;
+        a = b;
+        b = r;
+    }
+    return a;
+}
+
+int lcm(int a, int b) {
+    return a / gcd(a, b) * b;
+}
+
+int main() {
+    int n;
+    int a;
+    int b;
+    scanf("%d", &n);
+    for (int i = 0; i < n; i = i + 1) {
+        scanf("%d %d", &a, &b);
+        printf("%d\n", gcd(a, b));
+        printf("%d\n", lcm(a, b));
+    }
+    return 0;
+}
+
+PROGRAM INPUT: 4 48 18 1071 462 270 192 17 5
+
+RAW THREE-ADDRESS CODE (42 instructions)
+------------------------------------------------------------------------
+n = read
+t6 = 0
+i = t6
+L_for_start_2:
+t7 = i < n
+if_false t7 goto L_for_end_3
+a = read
+b = read
+t8 = "%d
+"
+print t8
+t9 = call gcd(a, b)
+print t9
+t10 = "%d
+"
+print t10
+t11 = call lcm(a, b)
+print t11
+t12 = 1
+t13 = i + t12
+i = t13
+goto L_for_start_2
+L_for_end_3:
+t14 = 0
+return t14
+func gcd(a, b):
+a = param 0
+b = param 1
+L_while_start_0:
+t0 = 0
+t1 = b != t0
+if_false t1 goto L_while_end_1
+t2 = a % b
+r = t2
+a = b
+b = r
+goto L_while_start_0
+L_while_end_1:
+return a
+func lcm(a, b):
+a = param 0
+b = param 1
+t3 = call gcd(a, b)
+t4 = a / t3
+t5 = t4 * b
+return t5
+
+OPTIMIZED SSA CODE (34 instructions)
+------------------------------------------------------------------------
+n_0 = read
+L_for_start_2:
+i_1 = phi(BB0: 0, BB2: t13_0)
+t7_0 = i_1 < n_0
+if_false t7_0 goto L_for_end_3
+a_0 = read
+b_0 = read
+print "%d
+"
+t9_0 = call gcd(a_0, b_0)
+print t9_0
+print "%d
+"
+t11_0 = call lcm(a_0, b_0)
+print t11_0
+t13_0 = i_1 + 1
+goto L_for_start_2
+L_for_end_3:
+return 0
+func gcd(a, b):
+a_0 = param 0
+b_0 = param 1
+L_while_start_0:
+b_1 = phi(BB0: b_0, BB2: t2_0)
+a_1 = phi(BB0: a_0, BB2: b_1)
+t1_0 = b_1 != 0
+if_false t1_0 goto L_while_end_1
+t2_0 = a_1 % b_1
+goto L_while_start_0
+L_while_end_1:
+return a_1
+func lcm(a, b):
+a_0 = param 0
+b_0 = param 1
+t3_0 = call gcd(a_0, b_0)
+t4_0 = a_0 / t3_0
+t5_0 = t4_0 * b_0
+return t5_0
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   0
+  constant_propagations            6
+  sccp_constants                   2
+  sccp_branches_resolved           0
+  copies_propagated                4
+  gvn_eliminations                 0
+  dead_instructions_removed        11
+  dead_blocks_removed              0
+  initial_instructions             45
+  final_instructions               34
+  rounds                           5
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    42 -> 34  (reduction 19.0%)
+  raw TAC text:        555 bytes
+  optimized text:      635 bytes
+  CLIR bytecode:       141 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          ['%d\n', 6, '%d\n', 144, '%d\n', 21, '%d\n', 23562, '%d\n', 6, '%d\n', 8640, '%d\n', 1, '%d\n', 85]   (return value 0)
+  optimized SSA:    ['%d\n', 6, '%d\n', 144, '%d\n', 21, '%d\n', 23562, '%d\n', 6, '%d\n', 8640, '%d\n', 1, '%d\n', 85]   (return value 0)
+  decoded CLIR:     ['%d\n', 6, '%d\n', 144, '%d\n', 21, '%d\n', 23562, '%d\n', 6, '%d\n', 8640, '%d\n', 1, '%d\n', 85]   (return value 0)
+  all identical:    True

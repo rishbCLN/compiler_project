@@ -1,0 +1,187 @@
+Sample output for K2: k02_isqrt.c (Integer sqrt (Newton))
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// K2: integer square root by Newton's method and a perfect-square test.
+// input: 5 0 15 16 1000000 123456789
+#include <stdio.h>
+
+int isqrt(int n) {
+    if (n < 2) {
+        return n;
+    }
+    int x = n;
+    int y = (x + n / x) / 2;
+    while (y < x) {
+        x = y;
+        y = (x + n / x) / 2;
+    }
+    return x;
+}
+
+int is_square(int n) {
+    int r = isqrt(n);
+    if (r * r == n) {
+        return 1;
+    }
+    return 0;
+}
+
+int main() {
+    int count;
+    int v;
+    scanf("%d", &count);
+    for (int i = 0; i < count; i = i + 1) {
+        scanf("%d", &v);
+        printf("%d\n", isqrt(v));
+        printf("%d\n", is_square(v));
+    }
+    return 0;
+}
+
+PROGRAM INPUT: 5 0 15 16 1000000 123456789
+
+RAW THREE-ADDRESS CODE (57 instructions)
+------------------------------------------------------------------------
+count = read
+t16 = 0
+i = t16
+L_for_start_6:
+t17 = i < count
+if_false t17 goto L_for_end_7
+v = read
+t18 = "%d
+"
+print t18
+t19 = call isqrt(v)
+print t19
+t20 = "%d
+"
+print t20
+t21 = call is_square(v)
+print t21
+t22 = 1
+t23 = i + t22
+i = t23
+goto L_for_start_6
+L_for_end_7:
+t24 = 0
+return t24
+func isqrt(n):
+n = param 0
+t0 = 2
+t1 = n < t0
+if_false t1 goto L_endif_1
+return n
+L_endif_1:
+x = n
+t2 = n / x
+t3 = x + t2
+t4 = 2
+t5 = t3 / t4
+y = t5
+L_while_start_2:
+t6 = y < x
+if_false t6 goto L_while_end_3
+x = y
+t7 = n / x
+t8 = x + t7
+t9 = 2
+t10 = t8 / t9
+y = t10
+goto L_while_start_2
+L_while_end_3:
+return x
+func is_square(n):
+n = param 0
+t11 = call isqrt(n)
+r = t11
+t12 = r * r
+t13 = t12 == n
+if_false t13 goto L_endif_5
+t14 = 1
+return t14
+L_endif_5:
+t15 = 0
+return t15
+
+OPTIMIZED SSA CODE (43 instructions)
+------------------------------------------------------------------------
+count_0 = read
+L_for_start_6:
+i_1 = phi(BB0: 0, BB2: t23_0)
+t17_0 = i_1 < count_0
+if_false t17_0 goto L_for_end_7
+v_0 = read
+print "%d
+"
+t19_0 = call isqrt(v_0)
+print t19_0
+print "%d
+"
+t21_0 = call is_square(v_0)
+print t21_0
+t23_0 = i_1 + 1
+goto L_for_start_6
+L_for_end_7:
+return 0
+func isqrt(n):
+n_0 = param 0
+t1_0 = n_0 < 2
+if_false t1_0 goto L_endif_1
+return n_0
+L_endif_1:
+t2_0 = n_0 / n_0
+t3_0 = n_0 + t2_0
+t5_0 = t3_0 / 2
+L_while_start_2:
+y_1 = phi(BB2: t5_0, BB4: t10_0)
+x_1 = phi(BB2: n_0, BB4: y_1)
+t6_0 = y_1 < x_1
+if_false t6_0 goto L_while_end_3
+t7_0 = n_0 / y_1
+t8_0 = y_1 + t7_0
+t10_0 = t8_0 / 2
+goto L_while_start_2
+L_while_end_3:
+return x_1
+func is_square(n):
+n_0 = param 0
+t11_0 = call isqrt(n_0)
+t12_0 = t11_0 * t11_0
+t13_0 = t12_0 == n_0
+if_false t13_0 goto L_endif_5
+return 1
+L_endif_5:
+return 0
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   0
+  constant_propagations            10
+  sccp_constants                   2
+  sccp_branches_resolved           0
+  copies_propagated                11
+  gvn_eliminations                 0
+  dead_instructions_removed        17
+  dead_blocks_removed              0
+  initial_instructions             60
+  final_instructions               43
+  rounds                           6
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    57 -> 43  (reduction 24.6%)
+  raw TAC text:        761 bytes
+  optimized text:      815 bytes
+  CLIR bytecode:       174 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          ['%d\n', 0, '%d\n', 1, '%d\n', 3, '%d\n', 0, '%d\n', 4, '%d\n', 1, '%d\n', 1000, '%d\n', 1, '%d\n', 11111, '%d\n', 0]   (return value 0)
+  optimized SSA:    ['%d\n', 0, '%d\n', 1, '%d\n', 3, '%d\n', 0, '%d\n', 4, '%d\n', 1, '%d\n', 1000, '%d\n', 1, '%d\n', 11111, '%d\n', 0]   (return value 0)
+  decoded CLIR:     ['%d\n', 0, '%d\n', 1, '%d\n', 3, '%d\n', 0, '%d\n', 4, '%d\n', 1, '%d\n', 1000, '%d\n', 1, '%d\n', 11111, '%d\n', 0]   (return value 0)
+  all identical:    True

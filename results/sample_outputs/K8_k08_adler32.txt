@@ -1,0 +1,130 @@
+Sample output for K8: k08_adler32.c (Adler-32 running sums)
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// K8: Adler-32 style checksum over an input stream of byte values
+// (the two running sums of RFC 1950, kept separate to avoid overflow).
+// input: 12 87 105 107 105 112 101 100 105 97 32 49 50
+#include <stdio.h>
+
+int mod_adler(int x) {
+    return x % 65521;
+}
+
+int main() {
+    int n;
+    int value;
+    int a = 1;
+    int b = 0;
+    scanf("%d", &n);
+    for (int i = 0; i < n; i = i + 1) {
+        scanf("%d", &value);
+        a = mod_adler(a + value);
+        b = mod_adler(b + a);
+    }
+    printf("%d\n", a);
+    printf("%d\n", b);
+    return 0;
+}
+
+PROGRAM INPUT: 12 87 105 107 105 112 101 100 105 97 32 49 50
+
+RAW THREE-ADDRESS CODE (34 instructions)
+------------------------------------------------------------------------
+t2 = 1
+a = t2
+t3 = 0
+b = t3
+n = read
+t4 = 0
+i = t4
+L_for_start_0:
+t5 = i < n
+if_false t5 goto L_for_end_1
+value = read
+t6 = a + value
+t7 = call mod_adler(t6)
+a = t7
+t8 = b + a
+t9 = call mod_adler(t8)
+b = t9
+t10 = 1
+t11 = i + t10
+i = t11
+goto L_for_start_0
+L_for_end_1:
+t12 = "%d
+"
+print t12
+print a
+t13 = "%d
+"
+print t13
+print b
+t14 = 0
+return t14
+func mod_adler(x):
+x = param 0
+t0 = 65521
+t1 = x % t0
+return t1
+
+OPTIMIZED SSA CODE (23 instructions)
+------------------------------------------------------------------------
+n_0 = read
+L_for_start_0:
+i_1 = phi(BB0: 0, BB2: t11_0)
+b_1 = phi(BB0: 0, BB2: t9_0)
+a_1 = phi(BB0: 1, BB2: t7_0)
+t5_0 = i_1 < n_0
+if_false t5_0 goto L_for_end_1
+value_0 = read
+t6_0 = a_1 + value_0
+t7_0 = call mod_adler(t6_0)
+t8_0 = b_1 + t7_0
+t9_0 = call mod_adler(t8_0)
+t11_0 = i_1 + 1
+goto L_for_start_0
+L_for_end_1:
+print "%d
+"
+print a_1
+print "%d
+"
+print b_1
+return 0
+func mod_adler(x):
+x_0 = param 0
+t1_0 = x_0 % 65521
+return t1_0
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   0
+  constant_propagations            8
+  sccp_constants                   6
+  sccp_branches_resolved           0
+  copies_propagated                4
+  gvn_eliminations                 0
+  dead_instructions_removed        14
+  dead_blocks_removed              0
+  initial_instructions             37
+  final_instructions               23
+  rounds                           4
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    34 -> 23  (reduction 32.4%)
+  raw TAC text:        411 bytes
+  optimized text:      436 bytes
+  CLIR bytecode:       106 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          ['%d\n', 1051, '%d\n', 7586]   (return value 0)
+  optimized SSA:    ['%d\n', 1051, '%d\n', 7586]   (return value 0)
+  decoded CLIR:     ['%d\n', 1051, '%d\n', 7586]   (return value 0)
+  all identical:    True

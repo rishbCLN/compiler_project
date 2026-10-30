@@ -27,6 +27,7 @@ repository were produced with the versions recorded in `results/compare.json`
 | `baselines.py` | `results/baselines.json` | Comparison with Java class files and LLVM bitcode |
 | `make_tables.py` | `paper/tables/*.tex`, `paper/tables/numbers.tex` | All data tables; every number in the text |
 | `make_figures.py` | `paper/figures/fig_*.pdf` (data figures) | All data figures |
+| `sample_outputs.py` | `results/sample_outputs/*.txt` | Per-benchmark sample outputs (code before and after optimization, sizes, program output) |
 
 Shared code: `pipeline.py` runs the compiler stage by stage, `interp.py` holds
 the two reference interpreters, `generator.py` the random-program generator,

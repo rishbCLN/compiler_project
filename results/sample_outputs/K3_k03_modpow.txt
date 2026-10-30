@@ -1,0 +1,183 @@
+Sample output for K3: k03_modpow.c (Modular exponentiation)
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// K3: modular exponentiation by repeated squaring, without bitwise operators.
+// input: 3 2 10 1000 7 128 13 12345 6789 9973
+#include <stdio.h>
+
+int mulmod(int a, int b, int m) {
+    return (a % m) * (b % m) % m;
+}
+
+int modpow(int base, int exp, int m) {
+    int result = 1 % m;
+    base = base % m;
+    while (exp > 0) {
+        if (exp % 2 == 1) {
+            result = mulmod(result, base, m);
+        }
+        base = mulmod(base, base, m);
+        exp = exp / 2;
+    }
+    return result;
+}
+
+int main() {
+    int n;
+    int b;
+    int e;
+    int m;
+    scanf("%d", &n);
+    for (int i = 0; i < n; i = i + 1) {
+        scanf("%d %d %d", &b, &e, &m);
+        printf("%d\n", modpow(b, e, m));
+    }
+    return 0;
+}
+
+PROGRAM INPUT: 3 2 10 1000 7 128 13 12345 6789 9973
+
+RAW THREE-ADDRESS CODE (56 instructions)
+------------------------------------------------------------------------
+n = read
+t17 = 0
+i = t17
+L_for_start_4:
+t18 = i < n
+if_false t18 goto L_for_end_5
+b = read
+e = read
+m = read
+t19 = "%d
+"
+print t19
+t20 = call modpow(b, e, m)
+print t20
+t21 = 1
+t22 = i + t21
+i = t22
+goto L_for_start_4
+L_for_end_5:
+t23 = 0
+return t23
+func mulmod(a, b, m):
+a = param 0
+b = param 1
+m = param 2
+t0 = a % m
+t1 = b % m
+t2 = t0 * t1
+t3 = t2 % m
+return t3
+func modpow(base, exp, m):
+base = param 0
+exp = param 1
+m = param 2
+t4 = 1
+t5 = t4 % m
+result = t5
+t6 = base % m
+base = t6
+L_while_start_0:
+t7 = 0
+t8 = exp > t7
+if_false t8 goto L_while_end_1
+t9 = 2
+t10 = exp % t9
+t11 = 1
+t12 = t10 == t11
+if_false t12 goto L_endif_3
+t13 = call mulmod(result, base, m)
+result = t13
+L_endif_3:
+t14 = call mulmod(base, base, m)
+base = t14
+t15 = 2
+t16 = exp / t15
+exp = t16
+goto L_while_start_0
+L_while_end_1:
+return result
+
+OPTIMIZED SSA CODE (45 instructions)
+------------------------------------------------------------------------
+n_0 = read
+L_for_start_4:
+i_1 = phi(BB0: 0, BB2: t22_0)
+t18_0 = i_1 < n_0
+if_false t18_0 goto L_for_end_5
+b_0 = read
+e_0 = read
+m_0 = read
+print "%d
+"
+t20_0 = call modpow(b_0, e_0, m_0)
+print t20_0
+t22_0 = i_1 + 1
+goto L_for_start_4
+L_for_end_5:
+return 0
+func mulmod(a, b, m):
+a_0 = param 0
+b_0 = param 1
+m_0 = param 2
+t0_0 = a_0 % m_0
+t1_0 = b_0 % m_0
+t2_0 = t0_0 * t1_0
+t3_0 = t2_0 % m_0
+return t3_0
+func modpow(base, exp, m):
+base_0 = param 0
+exp_0 = param 1
+m_0 = param 2
+t5_0 = 1 % m_0
+t6_0 = base_0 % m_0
+L_while_start_0:
+result_1 = phi(BB0: t5_0, BB4: result_3)
+exp_1 = phi(BB0: exp_0, BB4: t16_0)
+base_2 = phi(BB0: t6_0, BB4: t14_0)
+t8_0 = exp_1 > 0
+if_false t8_0 goto L_while_end_1
+t10_0 = exp_1 % 2
+t12_0 = t10_0 == 1
+if_false t12_0 goto L_endif_3
+t13_0 = call mulmod(result_1, base_2, m_0)
+L_endif_3:
+result_3 = phi(BB2: result_1, BB3: t13_0)
+t14_0 = call mulmod(base_2, base_2, m_0)
+t16_0 = exp_1 / 2
+goto L_while_start_0
+L_while_end_1:
+return result_1
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   0
+  constant_propagations            9
+  sccp_constants                   2
+  sccp_branches_resolved           0
+  copies_propagated                6
+  gvn_eliminations                 0
+  dead_instructions_removed        16
+  dead_blocks_removed              0
+  initial_instructions             61
+  final_instructions               45
+  rounds                           5
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    56 -> 45  (reduction 19.6%)
+  raw TAC text:        817 bytes
+  optimized text:      964 bytes
+  CLIR bytecode:       195 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          ['%d\n', 24, '%d\n', 3, '%d\n', 6220]   (return value 0)
+  optimized SSA:    ['%d\n', 24, '%d\n', 3, '%d\n', 6220]   (return value 0)
+  decoded CLIR:     ['%d\n', 24, '%d\n', 3, '%d\n', 6220]   (return value 0)
+  all identical:    True

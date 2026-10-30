@@ -1,0 +1,108 @@
+Sample output for S2: sample2_loops_and_conditionals.lang (Diamond + loop, phi nodes)
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// Sample 2: Control Flow Graph Branches & SSA Phi-Node Resolution
+// Demonstrates loops, conditionals, dominator tree depth, and phi function insertion.
+
+int x = 0;
+int y = 10;
+int sum = 0;
+
+if (x < y) {
+    x = x + 5;
+} else {
+    x = x + 2;
+}
+
+int i = 0;
+while (i < 5) {
+    sum = sum + x;
+    i = i + 1;
+}
+
+print(sum, x);
+
+PROGRAM INPUT: (none)
+
+RAW THREE-ADDRESS CODE (32 instructions)
+------------------------------------------------------------------------
+t0 = 0
+x = t0
+t1 = 10
+y = t1
+t2 = 0
+sum = t2
+t3 = x < y
+if_false t3 goto L_else_0
+t4 = 5
+t5 = x + t4
+x = t5
+goto L_endif_1
+L_else_0:
+t6 = 2
+t7 = x + t6
+x = t7
+L_endif_1:
+t8 = 0
+i = t8
+L_while_start_2:
+t9 = 5
+t10 = i < t9
+if_false t10 goto L_while_end_3
+t11 = sum + x
+sum = t11
+t12 = 1
+t13 = i + t12
+i = t13
+goto L_while_start_2
+L_while_end_3:
+print sum
+print x
+
+OPTIMIZED SSA CODE (13 instructions)
+------------------------------------------------------------------------
+goto L_endif_1
+L_endif_1:
+L_while_start_2:
+i_1 = phi(BB3: 0, BB5: t13_0)
+sum_1 = phi(BB3: 0, BB5: t11_0)
+t10_0 = i_1 < 5
+if_false t10_0 goto L_while_end_3
+t11_0 = sum_1 + 5
+t13_0 = i_1 + 1
+goto L_while_start_2
+L_while_end_3:
+print sum_1
+print 5
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   4
+  constant_propagations            15
+  sccp_constants                   10
+  sccp_branches_resolved           0
+  copies_propagated                2
+  gvn_eliminations                 0
+  dead_instructions_removed        20
+  dead_blocks_removed              1
+  initial_instructions             35
+  final_instructions               13
+  rounds                           2
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    32 -> 13  (reduction 59.4%)
+  raw TAC text:        360 bytes
+  optimized text:      244 bytes
+  CLIR bytecode:        63 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          [25, 5]
+  optimized SSA:    [25, 5]
+  decoded CLIR:     [25, 5]
+  all identical:    True

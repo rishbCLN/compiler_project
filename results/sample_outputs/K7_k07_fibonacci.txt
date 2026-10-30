@@ -1,0 +1,186 @@
+Sample output for K7: k07_fibonacci.c (Fibonacci (iter., rec.))
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// K7: Fibonacci numbers, iterative and recursive, for an input n.
+// input: 20 15
+#include <stdio.h>
+
+int fib_iter(int n) {
+    int a = 0;
+    int b = 1;
+    for (int i = 0; i < n; i = i + 1) {
+        int t = a + b;
+        a = b;
+        b = t;
+    }
+    return a;
+}
+
+int fib_rec(int n) {
+    if (n < 2) {
+        return n;
+    }
+    return fib_rec(n - 1) + fib_rec(n - 2);
+}
+
+int main() {
+    int n;
+    int m;
+    scanf("%d %d", &n, &m);
+    printf("%d\n", fib_iter(n));
+    printf("%d\n", fib_rec(m));
+    int same = 0;
+    if (fib_iter(m) == fib_rec(m)) {
+        same = 1;
+    }
+    printf("%d\n", same);
+    return 0;
+}
+
+PROGRAM INPUT: 20 15
+
+RAW THREE-ADDRESS CODE (58 instructions)
+------------------------------------------------------------------------
+n = read
+m = read
+t16 = "%d
+"
+print t16
+t17 = call fib_iter(n)
+print t17
+t18 = "%d
+"
+print t18
+t19 = call fib_rec(m)
+print t19
+t20 = 0
+same = t20
+t21 = call fib_iter(m)
+t22 = call fib_rec(m)
+t23 = t21 == t22
+if_false t23 goto L_endif_5
+t24 = 1
+same = t24
+L_endif_5:
+t25 = "%d
+"
+print t25
+print same
+t26 = 0
+return t26
+func fib_iter(n):
+n = param 0
+t0 = 0
+a = t0
+t1 = 1
+b = t1
+t2 = 0
+i = t2
+L_for_start_0:
+t3 = i < n
+if_false t3 goto L_for_end_1
+t4 = a + b
+t = t4
+a = b
+b = t
+t5 = 1
+t6 = i + t5
+i = t6
+goto L_for_start_0
+L_for_end_1:
+return a
+func fib_rec(n):
+n = param 0
+t7 = 2
+t8 = n < t7
+if_false t8 goto L_endif_3
+return n
+L_endif_3:
+t9 = 1
+t10 = n - t9
+t11 = call fib_rec(t10)
+t12 = 2
+t13 = n - t12
+t14 = call fib_rec(t13)
+t15 = t11 + t14
+return t15
+
+OPTIMIZED SSA CODE (40 instructions)
+------------------------------------------------------------------------
+n_0 = read
+m_0 = read
+print "%d
+"
+t17_0 = call fib_iter(n_0)
+print t17_0
+print "%d
+"
+t19_0 = call fib_rec(m_0)
+print t19_0
+t21_0 = call fib_iter(m_0)
+t22_0 = call fib_rec(m_0)
+t23_0 = t21_0 == t22_0
+if_false t23_0 goto L_endif_5
+L_endif_5:
+same_2 = phi(BB0: 0, BB1: 1)
+print "%d
+"
+print same_2
+return 0
+func fib_iter(n):
+n_0 = param 0
+L_for_start_0:
+i_1 = phi(BB0: 0, BB2: t6_0)
+b_1 = phi(BB0: 1, BB2: t4_0)
+a_1 = phi(BB0: 0, BB2: b_1)
+t3_0 = i_1 < n_0
+if_false t3_0 goto L_for_end_1
+t4_0 = a_1 + b_1
+t6_0 = i_1 + 1
+goto L_for_start_0
+L_for_end_1:
+return a_1
+func fib_rec(n):
+n_0 = param 0
+t8_0 = n_0 < 2
+if_false t8_0 goto L_endif_3
+return n_0
+L_endif_3:
+t10_0 = n_0 - 1
+t11_0 = call fib_rec(t10_0)
+t13_0 = n_0 - 2
+t14_0 = call fib_rec(t13_0)
+t15_0 = t11_0 + t14_0
+return t15_0
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   0
+  constant_propagations            13
+  sccp_constants                   10
+  sccp_branches_resolved           0
+  copies_propagated                4
+  gvn_eliminations                 0
+  dead_instructions_removed        22
+  dead_blocks_removed              0
+  initial_instructions             62
+  final_instructions               40
+  rounds                           6
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    58 -> 40  (reduction 31.0%)
+  raw TAC text:        753 bytes
+  optimized text:      778 bytes
+  CLIR bytecode:       170 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          ['%d\n', 6765, '%d\n', 610, '%d\n', 1]   (return value 0)
+  optimized SSA:    ['%d\n', 6765, '%d\n', 610, '%d\n', 1]   (return value 0)
+  decoded CLIR:     ['%d\n', 6765, '%d\n', 610, '%d\n', 1]   (return value 0)
+  all identical:    True

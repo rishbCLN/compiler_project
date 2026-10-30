@@ -1,0 +1,105 @@
+Sample output for S5: sample5_matrix_fibonacci.lang (Fibonacci loop)
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// Sample 5: Iterative Fibonacci Sequence Generation
+// Demonstrates loop accumulation, variable updating, and comprehensive IR compression.
+
+int n = 8;
+int t1 = 0;
+int t2 = 1;
+int next_term = 0;
+int count = 2;
+
+print(t1, t2);
+
+while (count < n) {
+    next_term = t1 + t2;
+    t1 = t2;
+    t2 = next_term;
+    count = count + 1;
+    print(next_term);
+}
+
+int final_val = t2;
+print(final_val);
+
+PROGRAM INPUT: (none)
+
+RAW THREE-ADDRESS CODE (27 instructions)
+------------------------------------------------------------------------
+_t0 = 8
+n = _t0
+_t1 = 0
+t1 = _t1
+_t2 = 1
+t2 = _t2
+_t3 = 0
+next_term = _t3
+_t4 = 2
+count = _t4
+print t1
+print t2
+L_while_start_0:
+_t5 = count < n
+if_false _t5 goto L_while_end_1
+_t6 = t1 + t2
+next_term = _t6
+t1 = t2
+t2 = next_term
+_t7 = 1
+_t8 = count + _t7
+count = _t8
+print next_term
+goto L_while_start_0
+L_while_end_1:
+final_val = t2
+print final_val
+
+OPTIMIZED SSA CODE (14 instructions)
+------------------------------------------------------------------------
+print 0
+print 1
+L_while_start_0:
+count_1 = phi(BB0: 2, BB2: _t8_0)
+t2_1 = phi(BB0: 1, BB2: _t6_0)
+t1_1 = phi(BB0: 0, BB2: t2_1)
+_t5_0 = count_1 < 8
+if_false _t5_0 goto L_while_end_1
+_t6_0 = t1_1 + t2_1
+_t8_0 = count_1 + 1
+print _t6_0
+goto L_while_start_0
+L_while_end_1:
+print t2_1
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   0
+  constant_propagations            9
+  sccp_constants                   8
+  sccp_branches_resolved           0
+  copies_propagated                6
+  gvn_eliminations                 0
+  dead_instructions_removed        16
+  dead_blocks_removed              0
+  initial_instructions             30
+  final_instructions               14
+  rounds                           2
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    27 -> 14  (reduction 48.1%)
+  raw TAC text:        350 bytes
+  optimized text:      280 bytes
+  CLIR bytecode:        70 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          [0, 1, 1, 2, 3, 5, 8, 13, 13]
+  optimized SSA:    [0, 1, 1, 2, 3, 5, 8, 13, 13]
+  decoded CLIR:     [0, 1, 1, 2, 3, 5, 8, 13, 13]
+  all identical:    True

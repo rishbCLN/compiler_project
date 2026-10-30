@@ -1,0 +1,109 @@
+Sample output for S7: sample7_standard_c_program.c (C program (texttt{main}, texttt{printf}))
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// Standard C Program: Preprocessor, main(), Branches, Loops & printf
+// Demonstrates native C language ingestion into the IR Compression Pipeline.
+
+#include <stdio.h>
+
+int main() {
+    int total = 0;
+    int limit = 10;
+    int increment = 2;
+
+    // Diamond Decision Branch
+    if (total < limit) {
+        increment = 3;
+    } else {
+        increment = 1;
+    }
+
+    // Iterative Loop with Back-Edge
+    while (total < limit) {
+        total = total + increment;
+    }
+
+    printf("Computation Complete: %d\n", total);
+    return 0;
+}
+
+PROGRAM INPUT: (none)
+
+RAW THREE-ADDRESS CODE (27 instructions)
+------------------------------------------------------------------------
+t0 = 0
+total = t0
+t1 = 10
+limit = t1
+t2 = 2
+increment = t2
+t3 = total < limit
+if_false t3 goto L_else_0
+t4 = 3
+increment = t4
+goto L_endif_1
+L_else_0:
+t5 = 1
+increment = t5
+L_endif_1:
+L_while_start_2:
+t6 = total < limit
+if_false t6 goto L_while_end_3
+t7 = total + increment
+total = t7
+goto L_while_start_2
+L_while_end_3:
+t8 = "Computation Complete: %d
+"
+print t8
+print total
+t9 = 0
+return t9
+
+OPTIMIZED SSA CODE (12 instructions)
+------------------------------------------------------------------------
+goto L_endif_1
+L_endif_1:
+L_while_start_2:
+total_1 = phi(BB3: 0, BB5: t7_0)
+t6_0 = total_1 < 10
+if_false t6_0 goto L_while_end_3
+t7_0 = total_1 + 3
+goto L_while_start_2
+L_while_end_3:
+print "Computation Complete: %d
+"
+print total_1
+return 0
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   2
+  constant_propagations            11
+  sccp_constants                   7
+  sccp_branches_resolved           0
+  copies_propagated                1
+  gvn_eliminations                 0
+  dead_instructions_removed        15
+  dead_blocks_removed              1
+  initial_instructions             29
+  final_instructions               12
+  rounds                           2
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    27 -> 12  (reduction 55.6%)
+  raw TAC text:        391 bytes
+  optimized text:      240 bytes
+  CLIR bytecode:        81 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          ['Computation Complete: %d\n', 12]   (return value 0)
+  optimized SSA:    ['Computation Complete: %d\n', 12]   (return value 0)
+  decoded CLIR:     ['Computation Complete: %d\n', 12]   (return value 0)
+  all identical:    True

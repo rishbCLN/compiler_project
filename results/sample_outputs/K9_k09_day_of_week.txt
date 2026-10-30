@@ -1,0 +1,226 @@
+Sample output for K9: k09_day_of_week.c (Day of week (Zeller))
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// K9: day of the week by Zeller's congruence (0 = Saturday) for input dates,
+// with a leap-year test.
+// input: 4 15 10 2026 1 1 2000 29 2 2024 4 7 1776
+#include <stdio.h>
+
+int is_leap(int y) {
+    if ((y % 4 == 0 && y % 100 != 0) || y % 400 == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+int zeller(int d, int m, int y) {
+    if (m < 3) {
+        m = m + 12;
+        y = y - 1;
+    }
+    int k = y % 100;
+    int j = y / 100;
+    return (d + 13 * (m + 1) / 5 + k + k / 4 + j / 4 + 5 * j) % 7;
+}
+
+int main() {
+    int n;
+    int d;
+    int m;
+    int y;
+    scanf("%d", &n);
+    for (int i = 0; i < n; i = i + 1) {
+        scanf("%d %d %d", &d, &m, &y);
+        printf("%d\n", zeller(d, m, y));
+        printf("%d\n", is_leap(y));
+    }
+    return 0;
+}
+
+PROGRAM INPUT: 4 15 10 2026 1 1 2000 29 2 2024 4 7 1776
+
+RAW THREE-ADDRESS CODE (84 instructions)
+------------------------------------------------------------------------
+n = read
+t45 = 0
+i = t45
+L_for_start_4:
+t46 = i < n
+if_false t46 goto L_for_end_5
+d = read
+m = read
+y = read
+t47 = "%d
+"
+print t47
+t48 = call zeller(d, m, y)
+print t48
+t49 = "%d
+"
+print t49
+t50 = call is_leap(y)
+print t50
+t51 = 1
+t52 = i + t51
+i = t52
+goto L_for_start_4
+L_for_end_5:
+t53 = 0
+return t53
+func is_leap(y):
+y = param 0
+t0 = 4
+t1 = y % t0
+t2 = 0
+t3 = t1 == t2
+t4 = 100
+t5 = y % t4
+t6 = 0
+t7 = t5 != t6
+t8 = t3 && t7
+t9 = 400
+t10 = y % t9
+t11 = 0
+t12 = t10 == t11
+t13 = t8 || t12
+if_false t13 goto L_endif_1
+t14 = 1
+return t14
+L_endif_1:
+t15 = 0
+return t15
+func zeller(d, m, y):
+d = param 0
+m = param 1
+y = param 2
+t16 = 3
+t17 = m < t16
+if_false t17 goto L_endif_3
+t18 = 12
+t19 = m + t18
+m = t19
+t20 = 1
+t21 = y - t20
+y = t21
+L_endif_3:
+t22 = 100
+t23 = y % t22
+k = t23
+t24 = 100
+t25 = y / t24
+j = t25
+t26 = 13
+t27 = 1
+t28 = m + t27
+t29 = t26 * t28
+t30 = 5
+t31 = t29 / t30
+t32 = d + t31
+t33 = t32 + k
+t34 = 4
+t35 = k / t34
+t36 = t33 + t35
+t37 = 4
+t38 = j / t37
+t39 = t36 + t38
+t40 = 5
+t41 = t40 * j
+t42 = t39 + t41
+t43 = 7
+t44 = t42 % t43
+return t44
+
+OPTIMIZED SSA CODE (56 instructions)
+------------------------------------------------------------------------
+n_0 = read
+L_for_start_4:
+i_1 = phi(BB0: 0, BB2: t52_0)
+t46_0 = i_1 < n_0
+if_false t46_0 goto L_for_end_5
+d_0 = read
+m_0 = read
+y_0 = read
+print "%d
+"
+t48_0 = call zeller(d_0, m_0, y_0)
+print t48_0
+print "%d
+"
+t50_0 = call is_leap(y_0)
+print t50_0
+t52_0 = i_1 + 1
+goto L_for_start_4
+L_for_end_5:
+return 0
+func is_leap(y):
+y_0 = param 0
+t1_0 = y_0 % 4
+t3_0 = t1_0 == 0
+t5_0 = y_0 % 100
+t7_0 = t5_0 != 0
+t8_0 = t3_0 && t7_0
+t10_0 = y_0 % 400
+t12_0 = t10_0 == 0
+t13_0 = t8_0 || t12_0
+if_false t13_0 goto L_endif_1
+return 1
+L_endif_1:
+return 0
+func zeller(d, m, y):
+d_0 = param 0
+m_0 = param 1
+y_0 = param 2
+t17_0 = m_0 < 3
+if_false t17_0 goto L_endif_3
+t19_0 = m_0 + 12
+t21_0 = y_0 - 1
+L_endif_3:
+y_2 = phi(BB0: y_0, BB1: t21_0)
+m_2 = phi(BB0: m_0, BB1: t19_0)
+t23_0 = y_2 % 100
+t25_0 = y_2 / 100
+t28_0 = m_2 + 1
+t29_0 = 13 * t28_0
+t31_0 = t29_0 / 5
+t32_0 = d_0 + t31_0
+t33_0 = t32_0 + t23_0
+t35_0 = t23_0 / 4
+t36_0 = t33_0 + t35_0
+t38_0 = t25_0 / 4
+t39_0 = t36_0 + t38_0
+t41_0 = 5 * t25_0
+t42_0 = t39_0 + t41_0
+t44_0 = t42_0 % 7
+return t44_0
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   0
+  constant_propagations            25
+  sccp_constants                   2
+  sccp_branches_resolved           0
+  copies_propagated                7
+  gvn_eliminations                 0
+  dead_instructions_removed        31
+  dead_blocks_removed              0
+  initial_instructions             87
+  final_instructions               56
+  rounds                           6
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    84 -> 56  (reduction 33.3%)
+  raw TAC text:       1059 bytes
+  optimized text:     1039 bytes
+  CLIR bytecode:       243 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          ['%d\n', 5, '%d\n', 0, '%d\n', 0, '%d\n', 1, '%d\n', 5, '%d\n', 1, '%d\n', 5, '%d\n', 1]   (return value 0)
+  optimized SSA:    ['%d\n', 5, '%d\n', 0, '%d\n', 0, '%d\n', 1, '%d\n', 5, '%d\n', 1, '%d\n', 5, '%d\n', 1]   (return value 0)
+  decoded CLIR:     ['%d\n', 5, '%d\n', 0, '%d\n', 0, '%d\n', 1, '%d\n', 5, '%d\n', 1, '%d\n', 5, '%d\n', 1]   (return value 0)
+  all identical:    True

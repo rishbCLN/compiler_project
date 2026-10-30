@@ -1,0 +1,210 @@
+Sample output for K4: k04_bitcount.c (Bit counting)
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// K4: population count, parity and highest set bit using division by two
+// (in the spirit of the MiBench bitcount kernel, without bitwise operators).
+// input: 6 0 1 7 255 1023 65535
+#include <stdio.h>
+
+int popcount(int x) {
+    int c = 0;
+    while (x > 0) {
+        c = c + x % 2;
+        x = x / 2;
+    }
+    return c;
+}
+
+int highest_bit(int x) {
+    int h = 0 - 1;
+    while (x > 0) {
+        h = h + 1;
+        x = x / 2;
+    }
+    return h;
+}
+
+int main() {
+    int n;
+    int v;
+    int total = 0;
+    scanf("%d", &n);
+    for (int i = 0; i < n; i = i + 1) {
+        scanf("%d", &v);
+        int c = popcount(v);
+        total = total + c;
+        printf("%d\n", c);
+        printf("%d\n", c % 2);
+        printf("%d\n", highest_bit(v));
+    }
+    printf("%d\n", total);
+    return 0;
+}
+
+PROGRAM INPUT: 6 0 1 7 255 1023 65535
+
+RAW THREE-ADDRESS CODE (70 instructions)
+------------------------------------------------------------------------
+t17 = 0
+total = t17
+n = read
+t18 = 0
+i = t18
+L_for_start_4:
+t19 = i < n
+if_false t19 goto L_for_end_5
+v = read
+t20 = call popcount(v)
+c = t20
+t21 = total + c
+total = t21
+t22 = "%d
+"
+print t22
+print c
+t23 = "%d
+"
+print t23
+t24 = 2
+t25 = c % t24
+print t25
+t26 = "%d
+"
+print t26
+t27 = call highest_bit(v)
+print t27
+t28 = 1
+t29 = i + t28
+i = t29
+goto L_for_start_4
+L_for_end_5:
+t30 = "%d
+"
+print t30
+print total
+t31 = 0
+return t31
+func popcount(x):
+x = param 0
+t0 = 0
+c = t0
+L_while_start_0:
+t1 = 0
+t2 = x > t1
+if_false t2 goto L_while_end_1
+t3 = 2
+t4 = x % t3
+t5 = c + t4
+c = t5
+t6 = 2
+t7 = x / t6
+x = t7
+goto L_while_start_0
+L_while_end_1:
+return c
+func highest_bit(x):
+x = param 0
+t8 = 0
+t9 = 1
+t10 = t8 - t9
+h = t10
+L_while_start_2:
+t11 = 0
+t12 = x > t11
+if_false t12 goto L_while_end_3
+t13 = 1
+t14 = h + t13
+h = t14
+t15 = 2
+t16 = x / t15
+x = t16
+goto L_while_start_2
+L_while_end_3:
+return h
+
+OPTIMIZED SSA CODE (46 instructions)
+------------------------------------------------------------------------
+n_0 = read
+L_for_start_4:
+i_1 = phi(BB0: 0, BB2: t29_0)
+total_1 = phi(BB0: 0, BB2: t21_0)
+t19_0 = i_1 < n_0
+if_false t19_0 goto L_for_end_5
+v_0 = read
+t20_0 = call popcount(v_0)
+t21_0 = total_1 + t20_0
+print "%d
+"
+print t20_0
+print "%d
+"
+t25_0 = t20_0 % 2
+print t25_0
+print "%d
+"
+t27_0 = call highest_bit(v_0)
+print t27_0
+t29_0 = i_1 + 1
+goto L_for_start_4
+L_for_end_5:
+print "%d
+"
+print total_1
+return 0
+func popcount(x):
+x_0 = param 0
+L_while_start_0:
+c_1 = phi(BB0: 0, BB2: t5_0)
+x_1 = phi(BB0: x_0, BB2: t7_0)
+t2_0 = x_1 > 0
+if_false t2_0 goto L_while_end_1
+t4_0 = x_1 % 2
+t5_0 = c_1 + t4_0
+t7_0 = x_1 / 2
+goto L_while_start_0
+L_while_end_1:
+return c_1
+func highest_bit(x):
+x_0 = param 0
+L_while_start_2:
+h_1 = phi(BB0: -1, BB2: t14_0)
+x_1 = phi(BB0: x_0, BB2: t16_0)
+t12_0 = x_1 > 0
+if_false t12_0 goto L_while_end_3
+t14_0 = h_1 + 1
+t16_0 = x_1 / 2
+goto L_while_start_2
+L_while_end_3:
+return h_1
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   1
+  constant_propagations            19
+  sccp_constants                   8
+  sccp_branches_resolved           0
+  copies_propagated                9
+  gvn_eliminations                 0
+  dead_instructions_removed        30
+  dead_blocks_removed              0
+  initial_instructions             76
+  final_instructions               46
+  rounds                           6
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    70 -> 46  (reduction 34.3%)
+  raw TAC text:        891 bytes
+  optimized text:      900 bytes
+  CLIR bytecode:       190 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          ['%d\n', 0, '%d\n', 0, '%d\n', -1, '%d\n', 1, '%d\n', 1, '%d\n', 0, '%d\n', 3, '%d\n', 1, '%d\n', 2, '%d\n', 8, '%d\n', 0, '%d\n', 7, '%d\n', 10, '%d\n', 0, '%d\n', 9, '%d\n', 16, '%d\n', 0, '%d\n', 15, '%d\n', 38]   (return value 0)
+  optimized SSA:    ['%d\n', 0, '%d\n', 0, '%d\n', -1, '%d\n', 1, '%d\n', 1, '%d\n', 0, '%d\n', 3, '%d\n', 1, '%d\n', 2, '%d\n', 8, '%d\n', 0, '%d\n', 7, '%d\n', 10, '%d\n', 0, '%d\n', 9, '%d\n', 16, '%d\n', 0, '%d\n', 15, '%d\n', 38]   (return value 0)
+  decoded CLIR:     ['%d\n', 0, '%d\n', 0, '%d\n', -1, '%d\n', 1, '%d\n', 1, '%d\n', 0, '%d\n', 3, '%d\n', 1, '%d\n', 2, '%d\n', 8, '%d\n', 0, '%d\n', 7, '%d\n', 10, '%d\n', 0, '%d\n', 9, '%d\n', 16, '%d\n', 0, '%d\n', 15, '%d\n', 38]   (return value 0)
+  all identical:    True

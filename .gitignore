@@ -32,3 +32,12 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+
+# Local tool folders
+.claude/
+
+# LaTeX build files
+*.aux
+*.log
+*.out
+*.synctex.gz

@@ -6,6 +6,7 @@ Unified Entry Point for CLI Evaluation and Interactive Web GUI.
 import argparse
 import sys
 import os
+from typing import Optional
 
 # Ensure safe UTF-8 output on Windows consoles
 if sys.platform == "win32":

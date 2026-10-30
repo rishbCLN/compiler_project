@@ -1,0 +1,188 @@
+Sample output for K5: k05_collatz.c (Collatz lengths)
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// K5: Collatz sequence lengths and the input with the longest sequence.
+// input: 6 1 7 27 97 871 6171
+#include <stdio.h>
+
+int collatz_steps(int n) {
+    int steps = 0;
+    while (n != 1) {
+        if (n % 2 == 0) {
+            n = n / 2;
+        } else {
+            n = 3 * n + 1;
+        }
+        steps = steps + 1;
+    }
+    return steps;
+}
+
+int main() {
+    int count;
+    int v;
+    int best = 0;
+    int best_steps = 0 - 1;
+    scanf("%d", &count);
+    for (int i = 0; i < count; i = i + 1) {
+        scanf("%d", &v);
+        int s = collatz_steps(v);
+        printf("%d\n", s);
+        if (s > best_steps) {
+            best_steps = s;
+            best = v;
+        }
+    }
+    printf("%d\n", best);
+    return 0;
+}
+
+PROGRAM INPUT: 6 1 7 27 97 871 6171
+
+RAW THREE-ADDRESS CODE (62 instructions)
+------------------------------------------------------------------------
+t15 = 0
+best = t15
+t16 = 0
+t17 = 1
+t18 = t16 - t17
+best_steps = t18
+count = read
+t19 = 0
+i = t19
+L_for_start_4:
+t20 = i < count
+if_false t20 goto L_for_end_5
+v = read
+t21 = call collatz_steps(v)
+s = t21
+t22 = "%d
+"
+print t22
+print s
+t23 = s > best_steps
+if_false t23 goto L_endif_7
+best_steps = s
+best = v
+L_endif_7:
+t24 = 1
+t25 = i + t24
+i = t25
+goto L_for_start_4
+L_for_end_5:
+t26 = "%d
+"
+print t26
+print best
+t27 = 0
+return t27
+func collatz_steps(n):
+n = param 0
+t0 = 0
+steps = t0
+L_while_start_0:
+t1 = 1
+t2 = n != t1
+if_false t2 goto L_while_end_1
+t3 = 2
+t4 = n % t3
+t5 = 0
+t6 = t4 == t5
+if_false t6 goto L_else_2
+t7 = 2
+t8 = n / t7
+n = t8
+goto L_endif_3
+L_else_2:
+t9 = 3
+t10 = t9 * n
+t11 = 1
+t12 = t10 + t11
+n = t12
+L_endif_3:
+t13 = 1
+t14 = steps + t13
+steps = t14
+goto L_while_start_0
+L_while_end_1:
+return steps
+
+OPTIMIZED SSA CODE (42 instructions)
+------------------------------------------------------------------------
+count_0 = read
+L_for_start_4:
+i_1 = phi(BB0: 0, BB4: t25_0)
+best_steps_1 = phi(BB0: -1, BB4: best_steps_3)
+best_1 = phi(BB0: 0, BB4: best_3)
+t20_0 = i_1 < count_0
+if_false t20_0 goto L_for_end_5
+v_1 = read
+t21_0 = call collatz_steps(v_1)
+print "%d
+"
+print t21_0
+t23_0 = t21_0 > best_steps_1
+if_false t23_0 goto L_endif_7
+L_endif_7:
+best_steps_3 = phi(BB2: best_steps_1, BB3: t21_0)
+best_3 = phi(BB2: best_1, BB3: v_1)
+t25_0 = i_1 + 1
+goto L_for_start_4
+L_for_end_5:
+print "%d
+"
+print best_1
+return 0
+func collatz_steps(n):
+n_0 = param 0
+L_while_start_0:
+steps_1 = phi(BB0: 0, BB5: t14_0)
+n_1 = phi(BB0: n_0, BB5: n_4)
+t2_0 = n_1 != 1
+if_false t2_0 goto L_while_end_1
+t4_0 = n_1 % 2
+t6_0 = t4_0 == 0
+if_false t6_0 goto L_else_2
+t8_0 = n_1 / 2
+goto L_endif_3
+L_else_2:
+t10_0 = 3 * n_1
+t12_0 = t10_0 + 1
+L_endif_3:
+n_4 = phi(BB3: t8_0, BB4: t12_0)
+t14_0 = steps_1 + 1
+goto L_while_start_0
+L_while_end_1:
+return steps_1
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   1
+  constant_propagations            17
+  sccp_constants                   8
+  sccp_branches_resolved           0
+  copies_propagated                10
+  gvn_eliminations                 0
+  dead_instructions_removed        30
+  dead_blocks_removed              0
+  initial_instructions             72
+  final_instructions               42
+  rounds                           4
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    62 -> 42  (reduction 32.3%)
+  raw TAC text:        818 bytes
+  optimized text:      915 bytes
+  CLIR bytecode:       189 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          ['%d\n', 0, '%d\n', 16, '%d\n', 111, '%d\n', 118, '%d\n', 178, '%d\n', 261, '%d\n', 6171]   (return value 0)
+  optimized SSA:    ['%d\n', 0, '%d\n', 16, '%d\n', 111, '%d\n', 118, '%d\n', 178, '%d\n', 261, '%d\n', 6171]   (return value 0)
+  decoded CLIR:     ['%d\n', 0, '%d\n', 16, '%d\n', 111, '%d\n', 118, '%d\n', 178, '%d\n', 261, '%d\n', 6171]   (return value 0)
+  all identical:    True

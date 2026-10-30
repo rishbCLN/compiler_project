@@ -1,0 +1,199 @@
+Sample output for K6: k06_primes.c (Primes by trial division)
+Produced by paper_eval/sample_outputs.py (the same compiler pipeline as main.py)
+========================================================================
+
+SOURCE PROGRAM
+------------------------------------------------------------------------
+// K6: trial-division primality test; counts and sums the primes up to n.
+// input: 500
+#include <stdio.h>
+
+int is_prime(int n) {
+    if (n < 2) {
+        return 0;
+    }
+    int d = 2;
+    while (d * d <= n) {
+        if (n % d == 0) {
+            return 0;
+        }
+        d = d + 1;
+    }
+    return 1;
+}
+
+int main() {
+    int limit;
+    int count = 0;
+    int sum = 0;
+    int last = 0;
+    scanf("%d", &limit);
+    for (int k = 2; k <= limit; k = k + 1) {
+        if (is_prime(k) == 1) {
+            count = count + 1;
+            sum = sum + k;
+            last = k;
+        }
+    }
+    printf("%d\n", count);
+    printf("%d\n", sum);
+    printf("%d\n", last);
+    return 0;
+}
+
+PROGRAM INPUT: 500
+
+RAW THREE-ADDRESS CODE (66 instructions)
+------------------------------------------------------------------------
+t13 = 0
+count = t13
+t14 = 0
+sum = t14
+t15 = 0
+last = t15
+limit = read
+t16 = 2
+k = t16
+L_for_start_6:
+t17 = k <= limit
+if_false t17 goto L_for_end_7
+t18 = call is_prime(k)
+t19 = 1
+t20 = t18 == t19
+if_false t20 goto L_endif_9
+t21 = 1
+t22 = count + t21
+count = t22
+t23 = sum + k
+sum = t23
+last = k
+L_endif_9:
+t24 = 1
+t25 = k + t24
+k = t25
+goto L_for_start_6
+L_for_end_7:
+t26 = "%d
+"
+print t26
+print count
+t27 = "%d
+"
+print t27
+print sum
+t28 = "%d
+"
+print t28
+print last
+t29 = 0
+return t29
+func is_prime(n):
+n = param 0
+t0 = 2
+t1 = n < t0
+if_false t1 goto L_endif_1
+t2 = 0
+return t2
+L_endif_1:
+t3 = 2
+d = t3
+L_while_start_2:
+t4 = d * d
+t5 = t4 <= n
+if_false t5 goto L_while_end_3
+t6 = n % d
+t7 = 0
+t8 = t6 == t7
+if_false t8 goto L_endif_5
+t9 = 0
+return t9
+L_endif_5:
+t10 = 1
+t11 = d + t10
+d = t11
+goto L_while_start_2
+L_while_end_3:
+t12 = 1
+return t12
+
+OPTIMIZED SSA CODE (46 instructions)
+------------------------------------------------------------------------
+limit_0 = read
+L_for_start_6:
+k_1 = phi(BB0: 2, BB4: t25_0)
+last_1 = phi(BB0: 0, BB4: last_3)
+sum_1 = phi(BB0: 0, BB4: sum_3)
+count_1 = phi(BB0: 0, BB4: count_3)
+t17_0 = k_1 <= limit_0
+if_false t17_0 goto L_for_end_7
+t18_0 = call is_prime(k_1)
+t20_0 = t18_0 == 1
+if_false t20_0 goto L_endif_9
+t22_0 = count_1 + 1
+t23_0 = sum_1 + k_1
+L_endif_9:
+last_3 = phi(BB2: last_1, BB3: k_1)
+sum_3 = phi(BB2: sum_1, BB3: t23_0)
+count_3 = phi(BB2: count_1, BB3: t22_0)
+t25_0 = k_1 + 1
+goto L_for_start_6
+L_for_end_7:
+print "%d
+"
+print count_1
+print "%d
+"
+print sum_1
+print "%d
+"
+print last_1
+return 0
+func is_prime(n):
+n_0 = param 0
+t1_0 = n_0 < 2
+if_false t1_0 goto L_endif_1
+return 0
+L_endif_1:
+L_while_start_2:
+d_1 = phi(BB2: 2, BB6: t11_0)
+t4_0 = d_1 * d_1
+t5_0 = t4_0 <= n_0
+if_false t5_0 goto L_while_end_3
+t6_0 = n_0 % d_1
+t8_0 = t6_0 == 0
+if_false t8_0 goto L_endif_5
+return 0
+L_endif_5:
+t11_0 = d_1 + 1
+goto L_while_start_2
+L_while_end_3:
+return 1
+
+OPTIMIZATION PASSES (summed over all functions)
+------------------------------------------------------------------------
+  constant_folds                   0
+  constant_propagations            18
+  sccp_constants                   10
+  sccp_branches_resolved           0
+  copies_propagated                5
+  gvn_eliminations                 0
+  dead_instructions_removed        28
+  dead_blocks_removed              0
+  initial_instructions             74
+  final_instructions               46
+  rounds                           4
+
+SIZES
+------------------------------------------------------------------------
+  instructions:    66 -> 46  (reduction 30.3%)
+  raw TAC text:        847 bytes
+  optimized text:      943 bytes
+  CLIR bytecode:       197 bytes
+
+PROGRAM OUTPUT (reference interpreters; one item per PRINT instruction,
+printf prints its format string and its value as separate items)
+------------------------------------------------------------------------
+  raw TAC:          ['%d\n', 95, '%d\n', 21536, '%d\n', 499]   (return value 0)
+  optimized SSA:    ['%d\n', 95, '%d\n', 21536, '%d\n', 499]   (return value 0)
+  decoded CLIR:     ['%d\n', 95, '%d\n', 21536, '%d\n', 499]   (return value 0)
+  all identical:    True
