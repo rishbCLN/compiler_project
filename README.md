@@ -13,6 +13,24 @@ Compiler Design project, Team 16, School of Computer Science and Engineering, Ve
 
 ---
 
+## Quick links
+
+| What | Link |
+|---|---|
+| Manuscript (PDF) | [manuscript/Manuscript_Draft2_IEEE_Access_Team16.pdf](manuscript/Manuscript_Draft2_IEEE_Access_Team16.pdf) |
+| Manuscript LaTeX for Overleaf (zip) | [manuscript/manuscript_latex_overleaf.zip](manuscript/manuscript_latex_overleaf.zip) |
+| Source code | [core/](core/), [api/](api/), [web/](web/), [main.py](main.py) |
+| Results and metrics | [results/README.md](results/README.md) |
+| Sample outputs | [results/sample_outputs/](results/sample_outputs/) |
+| Dataset | [benchmarks/](benchmarks/), [benchmarks/kernels/](benchmarks/kernels/) |
+| Dependencies | [requirements.txt](requirements.txt), [requirements-dev.txt](requirements-dev.txt), [paper_eval/requirements.txt](paper_eval/requirements.txt) |
+| Execution scripts | [scripts/](scripts/) |
+| Evaluation scripts | [paper_eval/](paper_eval/README.md) |
+| Response to reviewers | [paper/response_to_reviewers.md](paper/response_to_reviewers.md) |
+| Demo video | [add link after uploading] |
+
+---
+
 ## 1. Project overview
 
 IR Compression Studio is a compiler for a small C-like language and a subset of C. It measures how much smaller intermediate code becomes when it is optimized in static single assignment (SSA) form *before* it is encoded, and it checks with reference interpreters that the optimized and encoded program still behaves like the original.
@@ -96,9 +114,9 @@ compiler_project/
 
 | File | Packages | Needed for |
 |---|---|---|
-| `requirements.txt` | fastapi ≥ 0.110, uvicorn ≥ 0.28, pydantic ≥ 2.6, rich ≥ 13.7, networkx ≥ 3.2, pytest ≥ 8.0 | CLI, web studio, tests |
-| `requirements-dev.txt` | pytest-playwright ≥ 0.4.4, httpx ≥ 0.27, brotli ≥ 1.1, zstandard ≥ 0.22, lz4 ≥ 4.3 | full test suite (browser tests and the compressor comparison) |
-| `paper_eval/requirements.txt` | brotli 1.2.0, zstandard 0.25.0, matplotlib 3.10.8 | reproducing the manuscript results |
+| [`requirements.txt`](requirements.txt) | fastapi ≥ 0.110, uvicorn ≥ 0.28, pydantic ≥ 2.6, rich ≥ 13.7, networkx ≥ 3.2, pytest ≥ 8.0 | CLI, web studio, tests |
+| [`requirements-dev.txt`](requirements-dev.txt) | pytest-playwright ≥ 0.4.4, httpx ≥ 0.27, brotli ≥ 1.1, zstandard ≥ 0.22, lz4 ≥ 4.3 | full test suite (browser tests and the compressor comparison) |
+| [`paper_eval/requirements.txt`](paper_eval/requirements.txt) | brotli 1.2.0, zstandard 0.25.0, matplotlib 3.10.8 | reproducing the manuscript results |
 
 The compiler in `core/` itself uses only the Python standard library.
 
@@ -178,9 +196,9 @@ python3 paper_eval/check_paper.py    # checks every number, table, figure and re
 
 ## 7. Dataset
 
-- `benchmarks/`: seven demonstration programs S1–S7.
-- `benchmarks/kernels/`: ten C kernels K1–K10 that call functions and read input; each file's input is on its `// input:` line.
-- Random programs are generated on the fly from fixed seeds by `paper_eval/generator.py` (1,000 + 500 for differential testing, 200 + 200 for the ablation, 64 for scaling, 300 for training the compressor dictionary). No download or preprocessing is needed.
+- [`benchmarks/`](benchmarks/): seven demonstration programs S1–S7.
+- [`benchmarks/kernels/`](benchmarks/kernels/): ten C kernels K1–K10 that call functions and read input; each file's input is on its `// input:` line.
+- Random programs are generated on the fly from fixed seeds by [`paper_eval/generator.py`](paper_eval/generator.py) (1,000 + 500 for differential testing, 200 + 200 for the ablation, 64 for scaling, 300 for training the compressor dictionary). No download or preprocessing is needed.
 
 ## 8. Trained models
 
@@ -188,14 +206,14 @@ Not applicable: the project uses no machine-learning models.
 
 ## 9. Results
 
-[`results/README.md`](results/README.md) summarizes the experimental results and evaluation metrics, with tables, figures and per-benchmark sample outputs. The raw results are in `paper_eval/results/`.
+[`results/README.md`](results/README.md) summarizes the experimental results and evaluation metrics, with tables, figures and per-benchmark sample outputs. The raw results are in [`paper_eval/results/`](paper_eval/results/).
 
 ## 10. Documentation
 
-- `manuscript/Manuscript_Draft2_IEEE_Access_Team16.pdf`: the manuscript (Draft 2, revised), IEEE Access format.
-- `manuscript/manuscript_latex_overleaf.zip`: LaTeX source with all figures, tables, class and font files. On Overleaf choose *New Project → Upload Project*, upload the zip and compile `ir_compaction_access.tex` with pdfLaTeX. `paper/BUILD.md` describes a local build.
-- `paper/response_to_reviewers.md`: how each review comment was addressed.
-- `docs/`: design notes and project report.
+- [`manuscript/Manuscript_Draft2_IEEE_Access_Team16.pdf`](manuscript/Manuscript_Draft2_IEEE_Access_Team16.pdf): the manuscript (Draft 2, revised), IEEE Access format.
+- [`manuscript/manuscript_latex_overleaf.zip`](manuscript/manuscript_latex_overleaf.zip): LaTeX source with all figures, tables, class and font files. On Overleaf choose *New Project → Upload Project*, upload the zip and compile `ir_compaction_access.tex` with pdfLaTeX. [`paper/BUILD.md`](paper/BUILD.md) describes a local build.
+- [`paper/response_to_reviewers.md`](paper/response_to_reviewers.md): how each review comment was addressed.
+- [`docs/`](docs/): design notes and project report.
 
 ## 11. Demo video
 
